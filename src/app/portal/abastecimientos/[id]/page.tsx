@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -35,10 +36,13 @@ export default async function SupplyDetailPage({ params }: { params: Promise<{ i
   const doc = d?.despacho_documentos?.[0]?.comprobantes;
 
   return (
-    <main className="detail-shell">
-      <div className="detail-top"><Link href="/portal">← Volver al portal</Link><span>GESA CONTROL</span></div>
-      <section className="detail-card">
-        <div className="detail-header">
+    <main className="detail-shell branded-detail-shell">
+      <div className="detail-top branded-detail-top">
+        <Link href="/portal">← Volver al portal</Link>
+        <Image src="/gesa-logo.png" alt="GESA" width={150} height={52} className="detail-logo" />
+      </div>
+      <section className="detail-card branded-detail-card">
+        <div className="detail-header branded-detail-header">
           <div><p className="eyebrow">DETALLE DE ABASTECIMIENTO</p><h1>{row.vehiculos?.placa || 'Vehículo'}</h1><p>{row.empresas?.razon_social}</p></div>
           <span className="quality-badge">{row.estado_conciliacion}</span>
         </div>
