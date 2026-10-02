@@ -26,7 +26,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
     return (
       <main className="empty-access">
         <div className="login-card">
-          <div className="empty-logo gesa-logo-embedded" role="img" aria-label="GESA" />
+          <img src="/gesa-logo-clean.svg" alt="GESA" className="empty-logo" />
           <p className="eyebrow">GESA CONTROL</p>
           <h2>Usuario autenticado</h2>
           <p className="muted">Tu cuenta todavía no está asociada a una empresa cliente. Un administrador GESA debe asignarte una membresía.</p>
@@ -66,7 +66,9 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
     <main className="portal-shell">
       <aside className="portal-sidebar">
         <div className="official-brand">
-          <div className="gesa-logo gesa-logo-embedded" role="img" aria-label="GESA - Tu estación de confianza" />
+          <div className="sidebar-logo-wrap">
+            <img src="/gesa-logo-clean.svg" alt="GESA - Tu estación de confianza" className="gesa-logo" />
+          </div>
         </div>
         <div className="product-name">GESA CONTROL</div>
         <div className="product-sub">Portal corporativo</div>
