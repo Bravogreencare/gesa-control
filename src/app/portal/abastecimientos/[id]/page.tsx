@@ -38,7 +38,7 @@ export default async function SupplyDetailPage({ params }: { params: Promise<{ i
     <main className="detail-shell branded-detail-shell">
       <div className="detail-top branded-detail-top">
         <Link href="/portal">← Volver al portal</Link>
-        <img src="/gesa-logo.svg" alt="GESA" className="detail-logo" />
+        <div className="detail-logo gesa-logo-embedded" role="img" aria-label="GESA" />
       </div>
       <section className="detail-card branded-detail-card">
         <div className="detail-header branded-detail-header">
