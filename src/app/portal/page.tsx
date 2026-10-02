@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import LogoutButton from '@/components/logout-button';
@@ -26,6 +27,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
     return (
       <main className="empty-access">
         <div className="login-card">
+          <Image src="/gesa-logo.png" alt="GESA" width={200} height={70} className="empty-logo" />
           <p className="eyebrow">GESA CONTROL</p>
           <h2>Usuario autenticado</h2>
           <p className="muted">Tu cuenta todavía no está asociada a una empresa cliente. Un administrador GESA debe asignarte una membresía.</p>
@@ -64,7 +66,9 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
   return (
     <main className="portal-shell">
       <aside className="portal-sidebar">
-        <div className="brand-mark">GESA</div>
+        <div className="official-brand">
+          <Image src="/gesa-logo.png" alt="GESA - Tu estación de confianza" width={200} height={70} priority className="gesa-logo" />
+        </div>
         <div className="product-name">GESA CONTROL</div>
         <div className="product-sub">Portal corporativo</div>
         <nav>
@@ -77,13 +81,17 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
           <a className="nav-item">Comprobantes</a>
           <a className="nav-item">Alertas</a>
         </nav>
+        <div className="sidebar-signature">
+          <span>Red GESA</span>
+          <small>Información para mover tu operación.</small>
+        </div>
       </aside>
 
       <section className="workspace">
-        <header className="topbar">
+        <header className="topbar portal-topbar">
           <form method="get" className="company-form">
             <span className="label">Empresa</span>
-            <select name="empresa" defaultValue={selectedId} onChange={undefined}>
+            <select name="empresa" defaultValue={selectedId}>
               {available.map((m) => <option key={m.empresa_id} value={m.empresa_id}>{m.empresas?.razon_social}</option>)}
             </select>
             <button type="submit" className="small-button">Cambiar</button>
@@ -91,25 +99,27 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
           <div className="top-actions"><span className="user-email">{user.email}</span><LogoutButton /></div>
         </header>
 
-        <div className="content">
-          <div className="hero compact">
-            <div>
-              <p className="eyebrow">{company?.ruc} · {membership.rol}</p>
-              <h1>{company?.razon_social}</h1>
-              <p>Información real disponible para tu empresa, protegida mediante RLS.</p>
+        <div className="content portal-content">
+          <div className="hero compact official-hero">
+            <div className="hero-overlay" />
+            <div className="hero-copy">
+              <p className="eyebrow hero-eyebrow">PORTAL CORPORATIVO DE COMBUSTIBLE</p>
+              <h1>Resumen ejecutivo</h1>
+              <p>{company?.razon_social}</p>
+              <div className="hero-meta"><span>RUC {company?.ruc}</span><span>{membership.rol}</span></div>
             </div>
-            <div className="hero-note">Datos aislados<br/>por cliente.</div>
+            <div className="hero-note official-note">Más que combustible,<br/><strong>información para decidir.</strong></div>
           </div>
 
           <section className="kpi-grid four">
-            <article className="card kpi"><span>Galones visibles</span><strong>{number(totalGallons, 3)}</strong><small>{rows.length} registros cargados</small></article>
-            <article className="card kpi"><span>Importe visible</span><strong>{money(totalSpent)}</strong><small>Fuente transaccional GESA</small></article>
-            <article className="card kpi"><span>Abastecimientos</span><strong>{rows.length}</strong><small>Según acceso actual</small></article>
-            <article className="card kpi"><span>Vehículos en registros</span><strong>{uniqueVehicles}</strong><small>Flota identificada</small></article>
+            <article className="card kpi premium-kpi"><span>Galones visibles</span><strong>{number(totalGallons, 3)}</strong><small>{rows.length} registros cargados</small></article>
+            <article className="card kpi premium-kpi"><span>Importe visible</span><strong>{money(totalSpent)}</strong><small>Fuente transaccional GESA</small></article>
+            <article className="card kpi premium-kpi"><span>Abastecimientos</span><strong>{rows.length}</strong><small>Según acceso actual</small></article>
+            <article className="card kpi premium-kpi"><span>Vehículos identificados</span><strong>{uniqueVehicles}</strong><small>Flota visible del cliente</small></article>
           </section>
 
-          <section className="card table-card portal-table">
-            <div className="card-title-row"><div><p className="eyebrow">HISTORIAL</p><h2>Abastecimientos recientes</h2></div><span className="quality-badge">Sincronización demo GESA DB</span></div>
+          <section className="card table-card portal-table premium-table">
+            <div className="card-title-row"><div><p className="eyebrow">HISTORIAL</p><h2>Abastecimientos recientes</h2></div><span className="quality-badge">Sincronización GESA CONTROL</span></div>
             <div className="table-wrap">
               <table>
                 <thead><tr><th>Fecha/hora</th><th>Placa</th><th>Km</th><th>Viaje</th><th>Estación</th><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th>Comprobante</th><th></th></tr></thead>
@@ -127,7 +137,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
                         <td>{d?.productos?.nombre || '—'}</td>
                         <td>{number(Number(d?.cantidad || 0), 3)} {d?.unidad || ''}</td>
                         <td>{money(Number(d?.precio_unitario || 0))}</td>
-                        <td>{money(Number(d?.total || 0))}</td>
+                        <td><strong>{money(Number(d?.total || 0))}</strong></td>
                         <td>{doc ? `${doc.serie}-${doc.numero}` : 'Pendiente'}</td>
                         <td><Link className="table-link" href={`/portal/abastecimientos/${row.id}`}>Ver →</Link></td>
                       </tr>
