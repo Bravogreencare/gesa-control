@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 250" role="img" aria-labelledby="title desc">
+  <title id="title">GESA - Tu estación de confianza</title>
+  <desc id="desc">Logotipo GESA con surtidor, nombre y lema corporativo</desc>
+  <g fill="none" fill-rule="evenodd">
+    <g transform="translate(26 22)">
+      <path d="M26 35c0-15 12-27 27-27h94c15 0 27 12 27 27v137H26V35z" fill="#fff" stroke="#083b5a" stroke-width="8"/>
+      <path d="M39 64h122v72H39z" fill="#fff"/>
+      <path d="M41 97l54-38 52-22" stroke="#083b5a" stroke-width="9" stroke-linecap="round"/>
+      <path d="M44 114l57-36 49-17" stroke="#139651" stroke-width="9" stroke-linecap="round"/>
+      <path d="M39 136h122v36H39z" fill="#e1251b"/>
+      <path d="M24 73H8v65c0 13-4 21-13 21h-7c-8 0-13-7-13-15v-41c0-8 6-15 15-15H4" stroke="#083b5a" stroke-width="8" stroke-linecap="round"/>
+      <path d="M8 74l21-19" stroke="#083b5a" stroke-width="8" stroke-linecap="round"/>
+    </g>
+    <rect x="184" y="36" width="534" height="128" rx="12" fill="#083b5a"/>
+    <path d="M184 158h534v20H184z" fill="#e1251b"/>
+    <text x="214" y="137" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="104" font-weight="900" letter-spacing="1">GESA</text>
+    <text x="189" y="228" fill="#083b5a" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="700">Tu estación de confianza</text>
+  </g>
+</svg>
