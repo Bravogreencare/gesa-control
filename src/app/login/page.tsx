@@ -6,7 +6,9 @@ export default function LoginPage() {
       <section className="login-brand-panel official-login-panel">
         <div className="login-brand-overlay" />
         <div className="login-brand-content">
-          <div className="login-logo gesa-logo-embedded" role="img" aria-label="GESA - Tu estación de confianza" />
+          <div className="login-logo-wrap">
+            <img src="/gesa-logo-clean.svg" alt="GESA - Tu estación de confianza" className="login-logo" />
+          </div>
           <p className="eyebrow light">PORTAL CORPORATIVO</p>
           <h1>Control de abastecimientos para clientes empresariales.</h1>
           <p>Consulta consumos, comprobantes, vehículos, viajes y analítica desde una sola plataforma conectada con la información transaccional de GESA.</p>
@@ -15,7 +17,7 @@ export default function LoginPage() {
       </section>
       <section className="login-card-wrap">
         <div className="login-card premium-login-card">
-          <div className="login-card-logo gesa-logo-embedded" role="img" aria-label="GESA" />
+          <img src="/gesa-logo-clean.svg" alt="GESA" className="login-card-logo" />
           <p className="eyebrow">ACCESO EMPRESAS</p>
           <h2>Bienvenido</h2>
           <p className="muted">Ingresa con tus credenciales corporativas.</p>
