@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import './sprint1.css';
 import './gesa-brand.css';
+import './gesa-logo-embedded.css';
 
 export const metadata: Metadata = {
   title: 'GESA CONTROL',
