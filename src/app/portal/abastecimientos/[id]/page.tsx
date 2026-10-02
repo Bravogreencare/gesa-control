@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -39,7 +38,7 @@ export default async function SupplyDetailPage({ params }: { params: Promise<{ i
     <main className="detail-shell branded-detail-shell">
       <div className="detail-top branded-detail-top">
         <Link href="/portal">← Volver al portal</Link>
-        <Image src="/gesa-logo.png" alt="GESA" width={150} height={52} className="detail-logo" />
+        <img src="/gesa-logo.svg" alt="GESA" className="detail-logo" />
       </div>
       <section className="detail-card branded-detail-card">
         <div className="detail-header branded-detail-header">
