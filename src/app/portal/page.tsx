@@ -4,6 +4,7 @@ import LogoutButton from '@/components/logout-button';
 import FuelDashboard, {
   type FuelEvolutionPoint,
   type FuelSummaryItem,
+  type StationFuelItem,
   type TopVehicleItem,
 } from '@/components/fuel-dashboard';
 import { createClient } from '@/lib/supabase/server';
@@ -18,8 +19,8 @@ function number(value: number, digits = 2) {
 
 const fuelTypes: Array<Pick<FuelSummaryItem, 'key' | 'label' | 'unit'>> = [
   { key: 'DIESEL_B5', label: 'Diésel B5', unit: 'gal' },
-  { key: 'REGULAR', label: 'Gasolina regular', unit: 'gal' },
-  { key: 'PREMIUM', label: 'Gasolina premium', unit: 'gal' },
+  { key: 'REGULAR', label: 'G Regular', unit: 'gal' },
+  { key: 'PREMIUM', label: 'G Premium', unit: 'gal' },
   { key: 'GNV', label: 'GNV', unit: 'm³' },
   { key: 'GLP', label: 'GLP', unit: 'L' },
   { key: 'GNL', label: 'GNL', unit: 'kg' },
@@ -128,6 +129,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
   const fuelDefinitionByKey = new Map(fuelTypes.map((item) => [item.key, item]));
   const weekly = new Map<string, FuelEvolutionPoint['values']>();
   const vehicles = new Map<string, VehicleAggregate>();
+  const stationFuel = new Map<string, StationFuelItem>();
 
   for (const row of rows) {
     const dispatch = row.despachos;
@@ -136,6 +138,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
 
     const quantity = Number(dispatch?.cantidad || 0);
     const amount = Number(dispatch?.total || 0);
+    const definition = fuelDefinitionByKey.get(fuelKey);
     const summaryItem = fuelSummaryByKey.get(fuelKey);
     if (summaryItem) {
       summaryItem.quantity += quantity;
@@ -170,6 +173,22 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
     fuelTotals.amount += amount;
     aggregate.fuels.set(fuelKey, fuelTotals);
     vehicles.set(plate, aggregate);
+
+    const station = dispatch?.estaciones?.nombre || 'Estación sin identificar';
+    const stationKey = `${station}::${fuelKey}`;
+    const stationRow = stationFuel.get(stationKey) || {
+      station,
+      fuelKey,
+      fuelLabel: definition?.label || dispatch?.productos?.nombre || 'Sin clasificar',
+      unit: definition?.unit || dispatch?.unidad || '',
+      quantity: 0,
+      amount: 0,
+      count: 0,
+    };
+    stationRow.quantity += quantity;
+    stationRow.amount += amount;
+    stationRow.count += 1;
+    stationFuel.set(stationKey, stationRow);
   }
 
   const fuelEvolution: FuelEvolutionPoint[] = Array.from(weekly.entries())
@@ -193,6 +212,9 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
     })
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 5);
+
+  const stationBreakdown: StationFuelItem[] = Array.from(stationFuel.values())
+    .sort((a, b) => b.amount - a.amount || a.station.localeCompare(b.station, 'es'));
 
   return (
     <main className="portal-shell">
@@ -244,7 +266,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
             <div className="hero-note official-note">Más que combustible,<br/><strong>información para decidir.</strong></div>
           </div>
 
-          <FuelDashboard items={fuelSummary} evolution={fuelEvolution} topVehicles={topVehicles} />
+          <FuelDashboard items={fuelSummary} evolution={fuelEvolution} topVehicles={topVehicles} stationBreakdown={stationBreakdown} />
 
           <section className="card table-card portal-table premium-table recent-history-card">
             <div className="card-title-row"><div><p className="eyebrow">HISTORIAL</p><h2>Abastecimientos recientes</h2></div><span className="quality-badge">Sincronización GESA CONTROL</span></div>
@@ -255,6 +277,8 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
                   {recentRows.map((row) => {
                     const d = row.despachos;
                     const doc = d?.despacho_documentos?.[0]?.comprobantes;
+                    const fuelKey = resolveFuelType(d?.productos?.nombre);
+                    const productLabel = fuelKey ? fuelDefinitionByKey.get(fuelKey)?.label : d?.productos?.nombre;
                     return (
                       <tr key={row.id}>
                         <td>{d?.fecha_evento ? new Date(d.fecha_evento).toLocaleString('es-PE', { timeZone: 'America/Lima' }) : '—'}</td>
@@ -262,7 +286,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
                         <td>{row.kilometraje ?? '—'}</td>
                         <td>{row.viajes?.codigo_corto || '—'}</td>
                         <td>{d?.estaciones?.nombre || '—'}</td>
-                        <td>{d?.productos?.nombre || '—'}</td>
+                        <td>{productLabel || '—'}</td>
                         <td>{number(Number(d?.cantidad || 0), 3)} {d?.unidad || ''}</td>
                         <td>{money(Number(d?.precio_unitario || 0))}</td>
                         <td><strong>{money(Number(d?.total || 0))}</strong></td>
