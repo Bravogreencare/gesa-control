@@ -1,0 +1,118 @@
+.fuel-dashboard .month-chip-filter{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  width:max-content!important;
+  max-width:min(760px,100%)!important;
+  margin:-66px 0 22px auto!important;
+  padding:6px!important;
+  background:rgba(255,255,255,.96)!important;
+  border:1px solid #d9e4ef!important;
+  border-radius:16px!important;
+  box-shadow:0 10px 26px rgba(28,55,88,.08)!important;
+  min-width:0!important;
+  position:relative!important;
+  z-index:3!important;
+}
+
+.fuel-dashboard .month-chip-title{
+  flex:0 0 auto!important;
+  padding:0 8px!important;
+  color:#7a8da2!important;
+  font-size:10px!important;
+  line-height:34px!important;
+  font-weight:900!important;
+  text-transform:uppercase!important;
+  letter-spacing:.09em!important;
+  white-space:nowrap!important;
+}
+
+.fuel-dashboard .month-chip-scroll{
+  display:flex!important;
+  align-items:center!important;
+  gap:4px!important;
+  min-width:0!important;
+  max-width:520px!important;
+  overflow-x:auto!important;
+  scrollbar-width:none!important;
+  padding:0!important;
+}
+.fuel-dashboard .month-chip-scroll::-webkit-scrollbar{display:none!important}
+
+.fuel-dashboard button.month-chip{
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  flex:0 0 auto!important;
+  height:36px!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0 14px!important;
+  border:0!important;
+  outline:0!important;
+  border-radius:11px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#52677f!important;
+  font:inherit!important;
+  font-size:12px!important;
+  line-height:36px!important;
+  font-weight:800!important;
+  cursor:pointer!important;
+  white-space:nowrap!important;
+  transition:background .15s ease,color .15s ease,box-shadow .15s ease!important;
+}
+
+.fuel-dashboard button.month-chip:hover{
+  background:#eef4f9!important;
+  color:#173a5e!important;
+}
+
+.fuel-dashboard button.month-chip.active{
+  background:#073563!important;
+  color:#fff!important;
+  box-shadow:0 5px 13px rgba(7,53,99,.18)!important;
+}
+
+.fuel-dashboard .month-chip-count{
+  flex:0 0 auto!important;
+  margin:0 3px 0 2px!important;
+  padding:0 8px!important;
+  color:#718399!important;
+  background:#f0f5f9!important;
+  border-radius:9px!important;
+  font-size:10px!important;
+  line-height:28px!important;
+  font-weight:900!important;
+  white-space:nowrap!important;
+}
+
+@media(max-width:1100px){
+  .fuel-dashboard .month-chip-filter{
+    margin:0 0 18px 0!important;
+    width:100%!important;
+    max-width:100%!important;
+  }
+  .fuel-dashboard .month-chip-scroll{
+    max-width:none!important;
+    flex:1 1 auto!important;
+  }
+}
+
+@media(max-width:560px){
+  .fuel-dashboard .month-chip-filter{
+    gap:4px!important;
+    padding:5px!important;
+    border-radius:14px!important;
+  }
+  .fuel-dashboard .month-chip-title{
+    padding:0 6px!important;
+    font-size:9px!important;
+  }
+  .fuel-dashboard button.month-chip{
+    height:34px!important;
+    padding:0 11px!important;
+    font-size:11px!important;
+    line-height:34px!important;
+  }
+  .fuel-dashboard .month-chip-count{display:none!important}
+}
