@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { Paperclip } from 'lucide-react';
+import { FileDown, ReceiptText } from 'lucide-react';
 import LogoutButton from '@/components/logout-button';
 import PortalSidebar from '@/components/portal-sidebar';
-import SupplyInlineEditor from '@/components/supply-inline-editor';
+import EditableSupplyCell from '@/components/editable-supply-cell';
 import { getPortalContext } from '@/lib/portal/context';
 
 function money(value: number) {
@@ -32,7 +32,7 @@ export default async function AbastecimientosPage({
   const { data: supplies } = await supabase
     .from('abastecimientos')
     .select(`
-      id, kilometraje, documento_identidad, referencia_control, estado_conciliacion, creado_en, editado_cliente_en,
+      id, kilometraje, documento_identidad, referencia_control, creado_en, editado_cliente_en,
       vehiculos(id,placa,marca,modelo),
       viajes(id,codigo_corto,periodo),
       despachos(
@@ -57,7 +57,7 @@ export default async function AbastecimientosPage({
     if (desde && eventDate && eventDate < desde) return false;
     if (hasta && eventDate && eventDate > hasta) return false;
     if (!q) return true;
-    const ticketNota = d?.numero_ticket_nota || d?.numero_nota_despacho || d?.numero_recibo;
+    const receiptNumber = d?.numero_recibo || d?.numero_ticket_nota || d?.numero_nota_despacho;
     const haystack = [
       row.documento_identidad,
       row.vehiculos?.placa,
@@ -66,7 +66,7 @@ export default async function AbastecimientosPage({
       d?.estaciones?.nombre,
       d?.estaciones?.provincia,
       d?.productos?.nombre,
-      ticketNota,
+      receiptNumber,
       doc ? `${doc.serie}-${doc.numero}` : '',
     ].filter(Boolean).join(' ').toLowerCase();
     return haystack.includes(q);
@@ -111,9 +111,9 @@ export default async function AbastecimientosPage({
 
           <section className="kpi-grid four">
             <article className="card kpi premium-kpi"><span>Importe</span><strong>{money(totalSpent)}</strong><small>Resultado filtrado</small></article>
-            <article className="card kpi premium-kpi"><span>Abastecimientos</span><strong>{rows.length}</strong><small>Tickets / notas visibles</small></article>
+            <article className="card kpi premium-kpi"><span>Abastecimientos</span><strong>{rows.length}</strong><small>Recibos visibles</small></article>
             <article className="card kpi premium-kpi"><span>Vehículos</span><strong>{uniqueVehicles}</strong><small>Placas identificadas</small></article>
-            <article className="card kpi premium-kpi"><span>Con factura</span><strong>{invoicedRows}</strong><small>{consolidatedBilling ? 'Tickets ya incluidos en factura' : 'Abastecimientos facturados'}</small></article>
+            <article className="card kpi premium-kpi"><span>Con factura</span><strong>{invoicedRows}</strong><small>{consolidatedBilling ? 'Recibos ya incluidos en factura' : 'Abastecimientos facturados'}</small></article>
           </section>
 
           <section className="card module-filter-card">
@@ -121,7 +121,7 @@ export default async function AbastecimientosPage({
               <input type="hidden" name="empresa" value={selectedId} />
               <label>
                 Buscar
-                <input name="q" defaultValue={params.q || ''} placeholder={`Placa, DNI, ${controlLabel.toLowerCase()}, ticket/nota o factura`} />
+                <input name="q" defaultValue={params.q || ''} placeholder={`Placa, DNI, ${controlLabel.toLowerCase()}, recibo o factura`} />
               </label>
               <label>
                 Desde
@@ -143,7 +143,7 @@ export default async function AbastecimientosPage({
               <div>
                 <p className="eyebrow">HISTORIAL</p>
                 <h2>Registro de abastecimientos</h2>
-                <p className="table-helper">Cada consumo genera un único Ticket / Nota de despacho. La factura puede emitirse por ese abastecimiento o consolidar varios tickets del mismo combustible según la condición comercial definida por GESA.</p>
+                <p className="table-helper">Cada abastecimiento se identifica por su Recibo. Si la condición es por abastecimiento, la factura se asocia a ese recibo; si es consolidada, la factura aparecerá cuando GESA cierre y facture el grupo correspondiente.</p>
               </div>
               <span className="quality-badge">Fuente transaccional GESA</span>
             </div>
@@ -160,13 +160,11 @@ export default async function AbastecimientosPage({
                     <th>Precio</th>
                     <th>Cantidad</th>
                     <th>Total</th>
-                    <th>Ticket / Nota</th>
+                    <th>Recibo</th>
                     <th>{controlLabel}</th>
                     <th>KM</th>
-                    <th>Factura / comprobante</th>
-                    <th>Documentos</th>
-                    <th>Estado</th>
-                    <th>Editar</th>
+                    <th>Factura</th>
+                    <th>Archivos</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -174,15 +172,11 @@ export default async function AbastecimientosPage({
                     const d = row.despachos;
                     const doc = d?.despacho_documentos?.[0]?.comprobantes;
                     const controlValue = row.referencia_control || row.viajes?.codigo_corto || '';
-                    const ticketNota = d?.numero_ticket_nota || d?.numero_nota_despacho || d?.numero_recibo || '—';
-                    const facturaLabel = doc
-                      ? `${doc.serie}-${doc.numero}`
-                      : consolidatedBilling
-                        ? 'Pend. consolidación'
-                        : 'Pendiente';
-                    const ticketFile = d?.archivo_ticket_nota_path || d?.archivo_nota_despacho_path;
-                    const hasTicketAttachment = Boolean(ticketFile);
-                    const hasInvoiceAttachment = Boolean(doc?.archivo_path);
+                    const receiptNumber = d?.numero_recibo || d?.numero_ticket_nota || d?.numero_nota_despacho || '—';
+                    const invoiceLabel = doc ? `${doc.serie}-${doc.numero}` : '—';
+                    const receiptFile = d?.archivo_ticket_nota_path || d?.archivo_nota_despacho_path;
+                    const hasReceiptFile = Boolean(receiptFile);
+                    const hasInvoiceFile = Boolean(doc?.archivo_path);
 
                     return (
                       <tr key={row.id}>
@@ -198,40 +192,62 @@ export default async function AbastecimientosPage({
                         <td>{money(Number(d?.precio_unitario || 0))}</td>
                         <td>{number(Number(d?.cantidad || 0))}</td>
                         <td><strong>{money(Number(d?.total || 0))}</strong></td>
-                        <td><strong>{ticketNota}</strong></td>
-                        <td>{controlValue || '—'}</td>
-                        <td>{row.kilometraje ?? '—'}</td>
-                        <td><span className={doc ? 'doc-number' : 'doc-pending'}>{facturaLabel}</span></td>
+                        <td><strong>{receiptNumber}</strong></td>
                         <td>
-                          <div className="attachment-stack">
-                            {hasTicketAttachment ? (
-                              isHttpUrl(ticketFile)
-                                ? <a href={ticketFile} target="_blank" rel="noreferrer" className="attachment-link"><Paperclip size={13} /> Ticket / Nota</a>
-                                : <span className="attachment-link static"><Paperclip size={13} /> Ticket / Nota</span>
-                            ) : null}
-                            {hasInvoiceAttachment ? (
-                              isHttpUrl(doc.archivo_path)
-                                ? <a href={doc.archivo_path} target="_blank" rel="noreferrer" className="attachment-link"><Paperclip size={13} /> Factura</a>
-                                : <span className="attachment-link static"><Paperclip size={13} /> Factura</span>
-                            ) : null}
-                            {!hasTicketAttachment && !hasInvoiceAttachment ? <span className="no-attachment">Sin adjunto</span> : null}
-                          </div>
-                        </td>
-                        <td><span className="quality-badge">{row.estado_conciliacion || 'PENDIENTE'}</span></td>
-                        <td>
-                          <SupplyInlineEditor
+                          <EditableSupplyCell
                             abastecimientoId={row.id}
+                            field="referencia_control"
+                            value={controlValue}
                             documentoIdentidad={row.documento_identidad}
                             referenciaControl={controlValue}
                             kilometraje={row.kilometraje}
-                            controlLabel={controlLabel}
                             canEdit={canEdit}
+                            placeholder="—"
                           />
+                        </td>
+                        <td>
+                          <EditableSupplyCell
+                            abastecimientoId={row.id}
+                            field="kilometraje"
+                            value={row.kilometraje}
+                            documentoIdentidad={row.documento_identidad}
+                            referenciaControl={controlValue}
+                            kilometraje={row.kilometraje}
+                            canEdit={canEdit}
+                            placeholder="—"
+                          />
+                        </td>
+                        <td><span className={doc ? 'doc-number' : 'doc-pending'}>{invoiceLabel}</span></td>
+                        <td>
+                          <div className="document-buttons" aria-label="Archivos del abastecimiento">
+                            {hasReceiptFile && isHttpUrl(receiptFile) ? (
+                              <a className="document-file-button receipt" href={receiptFile} target="_blank" rel="noreferrer" download title={`Descargar recibo ${receiptNumber}`}>
+                                <ReceiptText size={16} />
+                                <span>Recibo</span>
+                              </a>
+                            ) : (
+                              <span className="document-file-button receipt disabled" title="Recibo todavía no disponible para descarga">
+                                <ReceiptText size={16} />
+                                <span>Recibo</span>
+                              </span>
+                            )}
+                            {hasInvoiceFile && isHttpUrl(doc?.archivo_path) ? (
+                              <a className="document-file-button invoice" href={doc.archivo_path} target="_blank" rel="noreferrer" download title={`Descargar factura ${invoiceLabel}`}>
+                                <FileDown size={16} />
+                                <span>Factura</span>
+                              </a>
+                            ) : (
+                              <span className="document-file-button invoice disabled" title={doc ? 'Factura registrada sin archivo descargable' : 'Pendiente de facturación'}>
+                                <FileDown size={16} />
+                                <span>Factura</span>
+                              </span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
                   })}
-                  {!rows.length ? <tr><td colSpan={16} className="empty-row">No hay abastecimientos que coincidan con los filtros seleccionados.</td></tr> : null}
+                  {!rows.length ? <tr><td colSpan={14} className="empty-row">No hay abastecimientos que coincidan con los filtros seleccionados.</td></tr> : null}
                 </tbody>
               </table>
             </div>
