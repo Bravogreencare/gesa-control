@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import LogoutButton from '@/components/logout-button';
+import PortalSidebar from '@/components/portal-sidebar';
 import FuelDashboard, {
   type FuelDefinition,
   type FuelRecord,
@@ -95,7 +96,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
       vehiculos(id,placa,marca,modelo),
       viajes(id,codigo_corto,periodo),
       despachos(
-        id,fecha_evento,numero_recibo,cantidad,unidad,precio_unitario,total,moneda,
+        id,fecha_evento,numero_recibo,numero_nota_despacho,numero_ticket_nota,cantidad,unidad,precio_unitario,total,moneda,
         estaciones(id,nombre), productos(id,nombre),
         despacho_documentos(comprobantes(id,tipo,serie,numero,total,fecha_emision))
       )
@@ -132,29 +133,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
 
   return (
     <main className="portal-shell">
-      <aside className="portal-sidebar">
-        <div className="official-brand">
-          <div className="sidebar-logo-wrap">
-            <img src="/gesa-logo-clean.svg" alt="GESA - Tu estación de confianza" className="gesa-logo" />
-          </div>
-        </div>
-        <div className="product-name">GESA CONTROL</div>
-        <div className="product-sub">Portal corporativo</div>
-        <nav>
-          <Link className="nav-item active" href={`/portal?empresa=${selectedId}`}>Inicio</Link>
-          <Link className="nav-item" href={`/portal/abastecimientos?empresa=${selectedId}`}>Abastecimientos</Link>
-          <a className="nav-item">Viajes y rutas</a>
-          <a className="nav-item">Rendimiento</a>
-          <a className="nav-item">Precios y refinería</a>
-          <a className="nav-item">Vehículos</a>
-          <a className="nav-item">Comprobantes</a>
-          <a className="nav-item">Alertas</a>
-        </nav>
-        <div className="sidebar-signature">
-          <span>Red GESA</span>
-          <small>Información para mover tu operación.</small>
-        </div>
-      </aside>
+      <PortalSidebar empresaId={selectedId} active="inicio" />
 
       <section className="workspace">
         <header className="topbar portal-topbar">
@@ -172,7 +151,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
           <div className="hero compact official-hero">
             <div className="hero-overlay" />
             <div className="hero-copy">
-              <p className="eyebrow hero-eyebrow">PORTAL CORPORATIVO DE COMBUSTIBLE</p>
+              <p className="eyebrow hero-eyebrow">PORTAL DEL CLIENTE · COMBUSTIBLE</p>
               <h1>Resumen ejecutivo</h1>
               <p>{company?.razon_social}</p>
               <div className="hero-meta"><span>RUC {company?.ruc}</span><span>{membership.rol}</span></div>
@@ -186,13 +165,14 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
             <div className="card-title-row"><div><p className="eyebrow">HOY</p><h2>Abastecimientos del día</h2></div><span className="quality-badge">Sincronización GESA CONTROL</span></div>
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Fecha/hora</th><th>Placa</th><th>Km</th><th>Viaje</th><th>Estación</th><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th>Comprobante</th><th></th></tr></thead>
+                <thead><tr><th>Fecha/hora</th><th>Placa</th><th>Km</th><th>Viaje</th><th>Estación</th><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th>Ticket / Nota</th><th>Factura</th><th></th></tr></thead>
                 <tbody>
                   {recentRows.map((row) => {
                     const d = row.despachos;
                     const doc = d?.despacho_documentos?.[0]?.comprobantes;
                     const fuelKey = resolveFuelType(d?.productos?.nombre);
                     const productLabel = fuelKey ? fuelDefinitionByKey.get(fuelKey)?.label : d?.productos?.nombre;
+                    const ticketNota = d?.numero_ticket_nota || d?.numero_nota_despacho || d?.numero_recibo || '—';
                     return (
                       <tr key={row.id}>
                         <td>{d?.fecha_evento ? new Date(d.fecha_evento).toLocaleString('es-PE', { timeZone: 'America/Lima' }) : '—'}</td>
@@ -204,12 +184,13 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
                         <td>{number(Number(d?.cantidad || 0), 3)} {d?.unidad || ''}</td>
                         <td>{money(Number(d?.precio_unitario || 0))}</td>
                         <td><strong>{money(Number(d?.total || 0))}</strong></td>
+                        <td>{ticketNota}</td>
                         <td>{doc ? `${doc.serie}-${doc.numero}` : 'Pendiente'}</td>
                         <td><Link className="table-link" href={`/portal/abastecimientos/${row.id}`}>Ver →</Link></td>
                       </tr>
                     );
                   })}
-                  {!recentRows.length ? <tr><td colSpan={11} className="empty-row">No hay abastecimientos registrados hoy.</td></tr> : null}
+                  {!recentRows.length ? <tr><td colSpan={12} className="empty-row">No hay abastecimientos registrados hoy.</td></tr> : null}
                 </tbody>
               </table>
             </div>
