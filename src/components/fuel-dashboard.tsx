@@ -93,6 +93,7 @@ function formatCompact(value: number) {
 
 export default function FuelDashboard({ items, evolution, topVehicles, stationBreakdown }: Props) {
   const [mode, setMode] = useState<Mode>('quantity');
+  const [stationMode, setStationMode] = useState<Mode>('quantity');
 
   const activeItems = useMemo(() => items.filter((item) => item.count > 0), [items]);
 
@@ -142,6 +143,37 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
     [activeItems, evolution, mode],
   );
 
+  const stationColumns = useMemo(() => {
+    const used = new Set(stationBreakdown.map((row) => row.fuelKey));
+    return items.filter((item) => used.has(item.key));
+  }, [items, stationBreakdown]);
+
+  const stationRows = useMemo(() => {
+    const grouped = new Map<string, Map<string, StationFuelItem>>();
+
+    stationBreakdown.forEach((row) => {
+      const fuels = grouped.get(row.station) || new Map<string, StationFuelItem>();
+      const previous = fuels.get(row.fuelKey);
+      fuels.set(row.fuelKey, previous
+        ? {
+            ...previous,
+            quantity: previous.quantity + row.quantity,
+            amount: previous.amount + row.amount,
+            count: previous.count + row.count,
+          }
+        : { ...row });
+      grouped.set(row.station, fuels);
+    });
+
+    return Array.from(grouped.entries())
+      .map(([station, fuels]) => ({
+        station,
+        fuels,
+        sortAmount: Array.from(fuels.values()).reduce((sum, row) => sum + row.amount, 0),
+      }))
+      .sort((a, b) => b.sortAmount - a.sortAmount);
+  }, [stationBreakdown]);
+
   return (
     <section className="fuel-dashboard">
       <div className="fuel-dashboard-header">
@@ -151,20 +183,10 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
           <p className="muted">Compara volumen, gasto, evolución, vehículos y estaciones de abastecimiento.</p>
         </div>
         <div className="fuel-view-toggle" role="group" aria-label="Cambiar visualización del consumo">
-          <button
-            type="button"
-            className={mode === 'quantity' ? 'active' : ''}
-            onClick={() => setMode('quantity')}
-            aria-pressed={mode === 'quantity'}
-          >
+          <button type="button" className={mode === 'quantity' ? 'active' : ''} onClick={() => setMode('quantity')} aria-pressed={mode === 'quantity'}>
             Cantidad
           </button>
-          <button
-            type="button"
-            className={mode === 'amount' ? 'active' : ''}
-            onClick={() => setMode('amount')}
-            aria-pressed={mode === 'amount'}
-          >
+          <button type="button" className={mode === 'amount' ? 'active' : ''} onClick={() => setMode('amount')} aria-pressed={mode === 'amount'}>
             Soles
           </button>
         </div>
@@ -176,7 +198,7 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
             <div>
               <h3>Consumo por tipo de combustible</h3>
               <p>{mode === 'quantity'
-                ? 'Volumen total consumido por cada tipo de combustible (unidades según tipo).'
+                ? 'Cantidad consumida por cada tipo de combustible (cada producto conserva su propia unidad).'
                 : 'Importe facturado acumulado por tipo de combustible.'}</p>
             </div>
           </div>
@@ -184,21 +206,8 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barData} layout="vertical" margin={{ top: 4, right: 105, bottom: 8, left: 10 }}>
                 <CartesianGrid stroke="#E8EEF5" horizontal={false} />
-                <XAxis
-                  type="number"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#73849A', fontSize: 11 }}
-                  tickFormatter={(value: number) => mode === 'amount' ? `S/ ${formatCompact(value)}` : formatCompact(value)}
-                />
-                <YAxis
-                  dataKey="label"
-                  type="category"
-                  width={105}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#234261', fontSize: 12, fontWeight: 700 }}
-                />
+                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#73849A', fontSize: 11 }} tickFormatter={(value: number) => mode === 'amount' ? `S/ ${formatCompact(value)}` : formatCompact(value)} />
+                <YAxis dataKey="label" type="category" width={105} axisLine={false} tickLine={false} tick={{ fill: '#234261', fontSize: 12, fontWeight: 700 }} />
                 <Tooltip
                   cursor={{ fill: '#F3F7FB' }}
                   formatter={(value: unknown, _name: unknown, entry: { payload?: { unit?: string } }) => {
@@ -226,18 +235,7 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
             <div className="donut-wrap">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={pieData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={62}
-                    outerRadius={91}
-                    paddingAngle={1.5}
-                    stroke="#FFFFFF"
-                    strokeWidth={2}
-                  >
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={91} paddingAngle={1.5} stroke="#FFFFFF" strokeWidth={2}>
                     {pieData.map((item) => <Cell key={item.key} fill={item.color} />)}
                   </Pie>
                   <Tooltip formatter={(value: unknown) => formatMoney(Number(value || 0))} />
@@ -278,13 +276,7 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
               <LineChart data={evolutionData} margin={{ top: 10, right: 16, left: 0, bottom: 4 }}>
                 <CartesianGrid stroke="#E8EEF5" strokeDasharray="3 3" />
                 <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fill: '#73849A', fontSize: 11 }} />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  width={58}
-                  tick={{ fill: '#73849A', fontSize: 11 }}
-                  tickFormatter={(value: number) => mode === 'amount' ? `S/ ${formatCompact(value)}` : formatCompact(value)}
-                />
+                <YAxis axisLine={false} tickLine={false} width={58} tick={{ fill: '#73849A', fontSize: 11 }} tickFormatter={(value: number) => mode === 'amount' ? `S/ ${formatCompact(value)}` : formatCompact(value)} />
                 <Tooltip
                   formatter={(value: unknown, name: unknown) => {
                     const numeric = Number(value || 0);
@@ -294,16 +286,7 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
                 />
                 <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
                 {activeItems.map((item) => (
-                  <Line
-                    key={item.key}
-                    type="monotone"
-                    dataKey={item.key}
-                    name={item.label}
-                    stroke={COLORS[item.key] || '#116CB8'}
-                    strokeWidth={2.5}
-                    dot={{ r: 3 }}
-                    activeDot={{ r: 5 }}
-                  />
+                  <Line key={item.key} type="monotone" dataKey={item.key} name={item.label} stroke={COLORS[item.key] || '#116CB8'} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                 ))}
               </LineChart>
             </ResponsiveContainer>
@@ -340,28 +323,54 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
         </article>
 
         <article className="analytics-card station-breakdown-card">
-          <div className="analytics-card-header">
+          <div className="analytics-card-header station-matrix-header">
             <div>
               <h3>Abastecimiento por estación</h3>
-              <p>Detalle de las estaciones GESA utilizadas, separado por producto, cantidad e importe.</p>
+              <p>Solo se muestran estaciones GESA con participación en el periodo. Cada producto conserva su propia unidad.</p>
+            </div>
+            <div className="fuel-view-toggle station-view-toggle" role="group" aria-label="Cambiar vista de estaciones">
+              <button type="button" className={stationMode === 'quantity' ? 'active' : ''} onClick={() => setStationMode('quantity')} aria-pressed={stationMode === 'quantity'}>
+                Cantidad
+              </button>
+              <button type="button" className={stationMode === 'amount' ? 'active' : ''} onClick={() => setStationMode('amount')} aria-pressed={stationMode === 'amount'}>
+                Soles
+              </button>
             </div>
           </div>
           <div className="station-table-wrap">
-            <table className="station-table">
+            <table className="station-table station-matrix-table">
               <thead>
-                <tr><th>Estación</th><th>Producto</th><th>Cargas</th><th>Cantidad</th><th>Importe</th></tr>
+                <tr>
+                  <th>Estación</th>
+                  {stationColumns.map((fuel) => (
+                    <th key={fuel.key}>
+                      <span className="station-product-head">
+                        <span className="fuel-dot" style={{ background: COLORS[fuel.key] || '#116CB8' }} />
+                        {fuel.label}
+                      </span>
+                    </th>
+                  ))}
+                </tr>
               </thead>
               <tbody>
-                {stationBreakdown.map((row) => (
-                  <tr key={`${row.station}-${row.fuelKey}`}>
+                {stationRows.map((row) => (
+                  <tr key={row.station}>
                     <td><strong>{row.station}</strong></td>
-                    <td><span className="fuel-dot" style={{ background: COLORS[row.fuelKey] || '#116CB8' }} /> {row.fuelLabel}</td>
-                    <td>{row.count}</td>
-                    <td>{formatQuantity(row.quantity)} {row.unit}</td>
-                    <td><strong>{formatMoney(row.amount)}</strong></td>
+                    {stationColumns.map((fuel) => {
+                      const cell = row.fuels.get(fuel.key);
+                      return (
+                        <td key={fuel.key} className={cell ? 'station-has-value' : 'station-empty-value'}>
+                          {cell
+                            ? stationMode === 'amount'
+                              ? formatMoney(cell.amount)
+                              : `${formatQuantity(cell.quantity)} ${cell.unit}`
+                            : '—'}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
-                {!stationBreakdown.length ? <tr><td colSpan={5} className="empty-row">Sin abastecimientos por estación.</td></tr> : null}
+                {!stationRows.length ? <tr><td colSpan={Math.max(1, stationColumns.length + 1)} className="empty-row">Sin abastecimientos por estación.</td></tr> : null}
               </tbody>
             </table>
           </div>
