@@ -4,6 +4,7 @@ import './sprint1.css';
 import './gesa-brand.css';
 import './fuel-dashboard.css';
 import './period-filter.css';
+import './dashboard-table-fixes.css';
 import './gesa-logo-embedded.css';
 
 export const metadata: Metadata = {
