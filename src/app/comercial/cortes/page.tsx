@@ -55,14 +55,14 @@ export default async function CommercialCutsPage() {
       productId,
       productName: product?.nombre || 'Sin producto',
       unit: d.unidad || '',
-      tickets: 0,
+      receipts: 0,
       quantity: 0,
       amount: 0,
       firstDate: null as string | null,
       lastDate: null as string | null,
       condition,
     };
-    current.tickets += 1;
+    current.receipts += 1;
     current.quantity += Number(d.cantidad || 0);
     current.amount += Number(d.total || 0);
     if (d.fecha_evento && (!current.firstDate || d.fecha_evento < current.firstDate)) current.firstDate = d.fecha_evento;
@@ -71,7 +71,7 @@ export default async function CommercialCutsPage() {
   }
 
   const rows = Array.from(groups.values()).sort((a, b) => b.amount - a.amount);
-  const totalTickets = rows.reduce((sum, row) => sum + row.tickets, 0);
+  const totalReceipts = rows.reduce((sum, row) => sum + row.receipts, 0);
   const totalAmount = rows.reduce((sum, row) => sum + row.amount, 0);
 
   return (
@@ -80,28 +80,28 @@ export default async function CommercialCutsPage() {
         <div>
           <p className="eyebrow">FACTURACIÓN CONSOLIDADA</p>
           <h1>Cortes por facturar</h1>
-          <p>Vista de tickets todavía no asociados a una factura. La separación por combustible se aplica antes de cualquier consolidación.</p>
+          <p>Vista de recibos todavía no asociados a una factura. La separación por combustible se aplica antes de cualquier consolidación.</p>
         </div>
         <Link className="commercial-secondary-link light" href="/comercial">← Volver a clientes</Link>
       </section>
 
       <section className="commercial-kpis three">
         <article><span>Grupos pendientes</span><strong>{rows.length}</strong><small>Cliente + combustible</small></article>
-        <article><span>Tickets pendientes</span><strong>{totalTickets}</strong><small>Sin factura asociada</small></article>
-        <article><span>Importe pendiente</span><strong>{money(totalAmount)}</strong><small>Acumulado de tickets</small></article>
+        <article><span>Recibos pendientes</span><strong>{totalReceipts}</strong><small>Sin factura asociada</small></article>
+        <article><span>Importe pendiente</span><strong>{money(totalAmount)}</strong><small>Acumulado de recibos</small></article>
       </section>
 
       <section className="commercial-card">
         <div className="commercial-card-head">
           <div>
             <p className="eyebrow">COLA DE CORTE</p>
-            <h2>Tickets pendientes por cliente y combustible</h2>
+            <h2>Recibos pendientes por cliente y combustible</h2>
             <p>Esta vista no emite facturas todavía; prepara el control para que el proceso de facturación respete la condición comercial vigente.</p>
           </div>
         </div>
         <div className="commercial-table-wrap">
           <table className="commercial-table">
-            <thead><tr><th>Cliente</th><th>Combustible</th><th>Periodo acumulado</th><th>Corte</th><th>Tickets</th><th>Cantidad</th><th>Importe</th><th></th></tr></thead>
+            <thead><tr><th>Cliente</th><th>Combustible</th><th>Periodo acumulado</th><th>Corte</th><th>Recibos</th><th>Cantidad</th><th>Importe</th><th></th></tr></thead>
             <tbody>
               {rows.map((row) => {
                 const company = companyById.get(row.empresaId) as any;
@@ -111,14 +111,14 @@ export default async function CommercialCutsPage() {
                     <td><span className="commercial-status blue">{row.productName}</span></td>
                     <td>{dateLabel(row.firstDate)} → {dateLabel(row.lastDate)}</td>
                     <td>{row.condition.frecuencia_corte || '—'}{row.condition.regla_corte ? <small>{row.condition.regla_corte}</small> : null}</td>
-                    <td><strong>{row.tickets}</strong></td>
+                    <td><strong>{row.receipts}</strong></td>
                     <td>{row.quantity.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 3 })} {row.unit}</td>
                     <td><strong>{money(row.amount)}</strong></td>
                     <td><Link className="commercial-primary-link" href={`/comercial/clientes/${row.empresaId}`}>Ver condición →</Link></td>
                   </tr>
                 );
               })}
-              {!rows.length ? <tr><td colSpan={8} className="empty-row">No hay tickets pendientes para clientes con facturación consolidada.</td></tr> : null}
+              {!rows.length ? <tr><td colSpan={8} className="empty-row">No hay recibos pendientes para clientes con facturación consolidada.</td></tr> : null}
             </tbody>
           </table>
         </div>
