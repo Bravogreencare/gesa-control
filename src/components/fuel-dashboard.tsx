@@ -41,12 +41,23 @@ export type TopVehicleItem = {
   amount: number;
 };
 
+export type StationFuelItem = {
+  station: string;
+  fuelKey: string;
+  fuelLabel: string;
+  unit: string;
+  quantity: number;
+  amount: number;
+  count: number;
+};
+
 type Mode = 'quantity' | 'amount';
 
 type Props = {
   items: FuelSummaryItem[];
   evolution: FuelEvolutionPoint[];
   topVehicles: TopVehicleItem[];
+  stationBreakdown: StationFuelItem[];
 };
 
 const COLORS: Record<string, string> = {
@@ -80,7 +91,7 @@ function formatCompact(value: number) {
   }).format(value || 0);
 }
 
-export default function FuelDashboard({ items, evolution, topVehicles }: Props) {
+export default function FuelDashboard({ items, evolution, topVehicles, stationBreakdown }: Props) {
   const [mode, setMode] = useState<Mode>('quantity');
 
   const activeItems = useMemo(() => items.filter((item) => item.count > 0), [items]);
@@ -135,9 +146,9 @@ export default function FuelDashboard({ items, evolution, topVehicles }: Props) 
     <section className="fuel-dashboard">
       <div className="fuel-dashboard-header">
         <div>
-          <p className="eyebrow">CONSUMO POR TIPO DE COMBUSTIBLE</p>
+          <p className="eyebrow">ANÁLISIS DE COMBUSTIBLE</p>
           <h2>Indicadores de consumo</h2>
-          <p className="muted">Visualiza el consumo físico o su equivalente facturado en soles.</p>
+          <p className="muted">Compara volumen, gasto, evolución, vehículos y estaciones de abastecimiento.</p>
         </div>
         <div className="fuel-view-toggle" role="group" aria-label="Cambiar visualización del consumo">
           <button
@@ -157,23 +168,6 @@ export default function FuelDashboard({ items, evolution, topVehicles }: Props) 
             Soles
           </button>
         </div>
-      </div>
-
-      <div className="fuel-kpi-grid">
-        {items.map((item) => (
-          <article className="fuel-kpi-card" key={item.key}>
-            <div className="fuel-kpi-label">
-              <span className="fuel-dot" style={{ background: COLORS[item.key] || '#116CB8' }} />
-              <span>{item.label}</span>
-            </div>
-            <strong>
-              {mode === 'quantity'
-                ? `${formatQuantity(item.quantity)} ${item.unit}`
-                : formatMoney(item.amount)}
-            </strong>
-            <small>{item.count} abastecimiento{item.count === 1 ? '' : 's'}</small>
-          </article>
-        ))}
       </div>
 
       <div className="dashboard-analytics-grid">
@@ -200,7 +194,7 @@ export default function FuelDashboard({ items, evolution, topVehicles }: Props) 
                 <YAxis
                   dataKey="label"
                   type="category"
-                  width={125}
+                  width={105}
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: '#234261', fontSize: 12, fontWeight: 700 }}
@@ -340,6 +334,34 @@ export default function FuelDashboard({ items, evolution, topVehicles }: Props) 
                   </tr>
                 ))}
                 {!topVehicles.length ? <tr><td colSpan={6} className="empty-row">Sin datos suficientes.</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article className="analytics-card station-breakdown-card">
+          <div className="analytics-card-header">
+            <div>
+              <h3>Abastecimiento por estación</h3>
+              <p>Detalle de las estaciones GESA utilizadas, separado por producto, cantidad e importe.</p>
+            </div>
+          </div>
+          <div className="station-table-wrap">
+            <table className="station-table">
+              <thead>
+                <tr><th>Estación</th><th>Producto</th><th>Cargas</th><th>Cantidad</th><th>Importe</th></tr>
+              </thead>
+              <tbody>
+                {stationBreakdown.map((row) => (
+                  <tr key={`${row.station}-${row.fuelKey}`}>
+                    <td><strong>{row.station}</strong></td>
+                    <td><span className="fuel-dot" style={{ background: COLORS[row.fuelKey] || '#116CB8' }} /> {row.fuelLabel}</td>
+                    <td>{row.count}</td>
+                    <td>{formatQuantity(row.quantity)} {row.unit}</td>
+                    <td><strong>{formatMoney(row.amount)}</strong></td>
+                  </tr>
+                ))}
+                {!stationBreakdown.length ? <tr><td colSpan={5} className="empty-row">Sin abastecimientos por estación.</td></tr> : null}
               </tbody>
             </table>
           </div>
