@@ -6,6 +6,7 @@ import './fuel-dashboard.css';
 import './period-filter.css';
 import './dashboard-table-fixes.css';
 import './donut-tooltip.css';
+import './abastecimientos.css';
 import './gesa-logo-embedded.css';
 
 export const metadata: Metadata = {
