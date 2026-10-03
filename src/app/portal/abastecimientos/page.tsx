@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { Paperclip } from 'lucide-react';
-import { redirect } from 'next/navigation';
 import LogoutButton from '@/components/logout-button';
+import PortalSidebar from '@/components/portal-sidebar';
 import SupplyInlineEditor from '@/components/supply-inline-editor';
-import { createClient } from '@/lib/supabase/server';
+import { getPortalContext } from '@/lib/portal/context';
 
 function money(value: number) {
   return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value || 0);
@@ -22,26 +22,11 @@ export default async function AbastecimientosPage({
 }: {
   searchParams: Promise<{ empresa?: string; q?: string; desde?: string; hasta?: string }>;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: memberships } = await supabase
-    .from('membresias')
-    .select('empresa_id, rol, empresas(id,ruc,razon_social,nombre_comercial,modalidad_facturacion,periodicidad_facturacion,etiqueta_control_operativo)')
-    .eq('activo', true);
-
-  const available = (memberships || []) as any[];
-  if (!available.length) redirect('/portal');
-
   const params = await searchParams;
-  const selectedId = available.some((m) => m.empresa_id === params.empresa)
-    ? params.empresa!
-    : available[0].empresa_id;
-  const membership = available.find((m) => m.empresa_id === selectedId)!;
-  const company = membership.empresas;
+  const { supabase, user, available, selectedId, membership, company, condition } = await getPortalContext(params.empresa);
+
   const controlLabel = company?.etiqueta_control_operativo === 'CECO' ? 'CECO' : 'Viaje';
-  const consolidatedBilling = company?.modalidad_facturacion === 'CONSOLIDADA';
+  const consolidatedBilling = condition?.modalidad_facturacion === 'CONSOLIDADA' || company?.modalidad_facturacion === 'CONSOLIDADA';
   const canEdit = membership.rol !== 'AUDITOR';
 
   const { data: supplies } = await supabase
@@ -51,9 +36,10 @@ export default async function AbastecimientosPage({
       vehiculos(id,placa,marca,modelo),
       viajes(id,codigo_corto,periodo),
       despachos(
-        id,fecha_evento,numero_recibo,numero_nota_despacho,archivo_nota_despacho_path,cantidad,unidad,precio_unitario,total,moneda,
+        id,fecha_evento,numero_recibo,numero_nota_despacho,numero_ticket_nota,
+        archivo_nota_despacho_path,archivo_ticket_nota_path,cantidad,unidad,precio_unitario,total,moneda,
         estaciones(id,nombre,provincia), productos(id,nombre),
-        despacho_documentos(comprobantes(id,tipo,serie,numero,total,fecha_emision,archivo_path))
+        despacho_documentos(comprobantes(id,tipo,serie,numero,total,fecha_emision,archivo_path,estado_cobranza))
       )
     `)
     .eq('empresa_id', selectedId)
@@ -71,6 +57,7 @@ export default async function AbastecimientosPage({
     if (desde && eventDate && eventDate < desde) return false;
     if (hasta && eventDate && eventDate > hasta) return false;
     if (!q) return true;
+    const ticketNota = d?.numero_ticket_nota || d?.numero_nota_despacho || d?.numero_recibo;
     const haystack = [
       row.documento_identidad,
       row.vehiculos?.placa,
@@ -79,8 +66,7 @@ export default async function AbastecimientosPage({
       d?.estaciones?.nombre,
       d?.estaciones?.provincia,
       d?.productos?.nombre,
-      d?.numero_recibo,
-      d?.numero_nota_despacho,
+      ticketNota,
       doc ? `${doc.serie}-${doc.numero}` : '',
     ].filter(Boolean).join(' ').toLowerCase();
     return haystack.includes(q);
@@ -92,29 +78,7 @@ export default async function AbastecimientosPage({
 
   return (
     <main className="portal-shell">
-      <aside className="portal-sidebar">
-        <div className="official-brand">
-          <div className="sidebar-logo-wrap">
-            <img src="/gesa-logo-clean.svg" alt="GESA - Tu estación de confianza" className="gesa-logo" />
-          </div>
-        </div>
-        <div className="product-name">GESA CONTROL</div>
-        <div className="product-sub">Portal corporativo</div>
-        <nav>
-          <Link className="nav-item" href={`/portal?empresa=${selectedId}`}>Inicio</Link>
-          <Link className="nav-item active" href={`/portal/abastecimientos?empresa=${selectedId}`}>Abastecimientos</Link>
-          <a className="nav-item">Viajes y rutas</a>
-          <a className="nav-item">Rendimiento</a>
-          <a className="nav-item">Precios y refinería</a>
-          <a className="nav-item">Vehículos</a>
-          <a className="nav-item">Comprobantes</a>
-          <a className="nav-item">Alertas</a>
-        </nav>
-        <div className="sidebar-signature">
-          <span>Red GESA</span>
-          <small>Información para mover tu operación.</small>
-        </div>
-      </aside>
+      <PortalSidebar empresaId={selectedId} active="abastecimientos" />
 
       <section className="workspace">
         <header className="topbar portal-topbar">
@@ -133,22 +97,23 @@ export default async function AbastecimientosPage({
         <div className="content portal-content">
           <div className="module-heading abastecimientos-heading">
             <div>
-              <p className="eyebrow">CONTROL OPERATIVO</p>
+              <p className="eyebrow">PORTAL DEL CLIENTE · CONTROL OPERATIVO</p>
               <h1>Abastecimientos</h1>
               <p className="muted">{company?.razon_social} · RUC {company?.ruc}</p>
             </div>
             <div className="module-heading-badges">
               <span className="quality-badge">{rows.length} registros visibles</span>
-              <span className="neutral-badge">{consolidatedBilling ? 'Facturación consolidada' : 'Facturación por consumo'}</span>
+              <span className="neutral-badge">{consolidatedBilling ? 'Facturación consolidada' : 'Factura por abastecimiento'}</span>
+              <span className="neutral-badge">1 factura = 1 combustible</span>
               <span className="neutral-badge">Control por {controlLabel}</span>
             </div>
           </div>
 
           <section className="kpi-grid four">
             <article className="card kpi premium-kpi"><span>Importe</span><strong>{money(totalSpent)}</strong><small>Resultado filtrado</small></article>
-            <article className="card kpi premium-kpi"><span>Abastecimientos</span><strong>{rows.length}</strong><small>Registros visibles</small></article>
+            <article className="card kpi premium-kpi"><span>Abastecimientos</span><strong>{rows.length}</strong><small>Tickets / notas visibles</small></article>
             <article className="card kpi premium-kpi"><span>Vehículos</span><strong>{uniqueVehicles}</strong><small>Placas identificadas</small></article>
-            <article className="card kpi premium-kpi"><span>Facturados</span><strong>{invoicedRows}</strong><small>{consolidatedBilling ? 'Despachos ya consolidados' : 'Consumos con comprobante'}</small></article>
+            <article className="card kpi premium-kpi"><span>Con factura</span><strong>{invoicedRows}</strong><small>{consolidatedBilling ? 'Tickets ya incluidos en factura' : 'Abastecimientos facturados'}</small></article>
           </section>
 
           <section className="card module-filter-card">
@@ -156,7 +121,7 @@ export default async function AbastecimientosPage({
               <input type="hidden" name="empresa" value={selectedId} />
               <label>
                 Buscar
-                <input name="q" defaultValue={params.q || ''} placeholder={`Placa, DNI, ${controlLabel.toLowerCase()}, ticket, nota o factura`} />
+                <input name="q" defaultValue={params.q || ''} placeholder={`Placa, DNI, ${controlLabel.toLowerCase()}, ticket/nota o factura`} />
               </label>
               <label>
                 Desde
@@ -178,7 +143,7 @@ export default async function AbastecimientosPage({
               <div>
                 <p className="eyebrow">HISTORIAL</p>
                 <h2>Registro de abastecimientos</h2>
-                <p className="table-helper">El ticket y la nota identifican el despacho. La factura puede emitirse por consumo o consolidar varios despachos según la configuración del cliente.</p>
+                <p className="table-helper">Cada consumo genera un único Ticket / Nota de despacho. La factura puede emitirse por ese abastecimiento o consolidar varios tickets del mismo combustible según la condición comercial definida por GESA.</p>
               </div>
               <span className="quality-badge">Fuente transaccional GESA</span>
             </div>
@@ -187,7 +152,7 @@ export default async function AbastecimientosPage({
                 <thead>
                   <tr>
                     <th>Fecha/hora</th>
-                    <th>DNI</th>
+                    <th>D. identidad</th>
                     <th>Placa</th>
                     <th>Estación</th>
                     <th>Combustible</th>
@@ -195,12 +160,11 @@ export default async function AbastecimientosPage({
                     <th>Precio</th>
                     <th>Cantidad</th>
                     <th>Total</th>
-                    <th>Ticket</th>
-                    <th>Nota despacho</th>
+                    <th>Ticket / Nota</th>
                     <th>{controlLabel}</th>
                     <th>KM</th>
                     <th>Factura / comprobante</th>
-                    <th>Adjuntos</th>
+                    <th>Documentos</th>
                     <th>Estado</th>
                     <th>Editar</th>
                   </tr>
@@ -210,12 +174,14 @@ export default async function AbastecimientosPage({
                     const d = row.despachos;
                     const doc = d?.despacho_documentos?.[0]?.comprobantes;
                     const controlValue = row.referencia_control || row.viajes?.codigo_corto || '';
+                    const ticketNota = d?.numero_ticket_nota || d?.numero_nota_despacho || d?.numero_recibo || '—';
                     const facturaLabel = doc
                       ? `${doc.serie}-${doc.numero}`
                       : consolidatedBilling
                         ? 'Pend. consolidación'
                         : 'Pendiente';
-                    const hasNoteAttachment = Boolean(d?.archivo_nota_despacho_path);
+                    const ticketFile = d?.archivo_ticket_nota_path || d?.archivo_nota_despacho_path;
+                    const hasTicketAttachment = Boolean(ticketFile);
                     const hasInvoiceAttachment = Boolean(doc?.archivo_path);
 
                     return (
@@ -232,24 +198,23 @@ export default async function AbastecimientosPage({
                         <td>{money(Number(d?.precio_unitario || 0))}</td>
                         <td>{number(Number(d?.cantidad || 0))}</td>
                         <td><strong>{money(Number(d?.total || 0))}</strong></td>
-                        <td>{d?.numero_recibo || '—'}</td>
-                        <td>{d?.numero_nota_despacho || '—'}</td>
+                        <td><strong>{ticketNota}</strong></td>
                         <td>{controlValue || '—'}</td>
                         <td>{row.kilometraje ?? '—'}</td>
                         <td><span className={doc ? 'doc-number' : 'doc-pending'}>{facturaLabel}</span></td>
                         <td>
                           <div className="attachment-stack">
-                            {hasNoteAttachment ? (
-                              isHttpUrl(d.archivo_nota_despacho_path)
-                                ? <a href={d.archivo_nota_despacho_path} target="_blank" rel="noreferrer" className="attachment-link"><Paperclip size={13} /> Nota</a>
-                                : <span className="attachment-link static"><Paperclip size={13} /> Nota</span>
+                            {hasTicketAttachment ? (
+                              isHttpUrl(ticketFile)
+                                ? <a href={ticketFile} target="_blank" rel="noreferrer" className="attachment-link"><Paperclip size={13} /> Ticket / Nota</a>
+                                : <span className="attachment-link static"><Paperclip size={13} /> Ticket / Nota</span>
                             ) : null}
                             {hasInvoiceAttachment ? (
                               isHttpUrl(doc.archivo_path)
                                 ? <a href={doc.archivo_path} target="_blank" rel="noreferrer" className="attachment-link"><Paperclip size={13} /> Factura</a>
                                 : <span className="attachment-link static"><Paperclip size={13} /> Factura</span>
                             ) : null}
-                            {!hasNoteAttachment && !hasInvoiceAttachment ? <span className="no-attachment">Sin adjunto</span> : null}
+                            {!hasTicketAttachment && !hasInvoiceAttachment ? <span className="no-attachment">Sin adjunto</span> : null}
                           </div>
                         </td>
                         <td><span className="quality-badge">{row.estado_conciliacion || 'PENDIENTE'}</span></td>
@@ -266,7 +231,7 @@ export default async function AbastecimientosPage({
                       </tr>
                     );
                   })}
-                  {!rows.length ? <tr><td colSpan={17} className="empty-row">No hay abastecimientos que coincidan con los filtros seleccionados.</td></tr> : null}
+                  {!rows.length ? <tr><td colSpan={16} className="empty-row">No hay abastecimientos que coincidan con los filtros seleccionados.</td></tr> : null}
                 </tbody>
               </table>
             </div>
