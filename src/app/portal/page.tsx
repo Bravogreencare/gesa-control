@@ -15,6 +15,21 @@ function number(value: number, digits = 2) {
   return new Intl.NumberFormat('es-PE', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value || 0);
 }
 
+function limaDateKey(value: string | Date) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Lima',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  return year && month && day ? `${year}-${month}-${day}` : null;
+}
+
 const fuelTypes: FuelDefinition[] = [
   { key: 'DIESEL_B5', label: 'Diésel B5', unit: 'gal' },
   { key: 'REGULAR', label: 'G Regular', unit: 'gal' },
@@ -90,7 +105,10 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
     .limit(1000);
 
   const rows = ((supplies || []) as any[]);
-  const recentRows = rows.slice(0, 25);
+  const todayLima = limaDateKey(new Date());
+  const recentRows = rows
+    .filter((row) => row.despachos?.fecha_evento && limaDateKey(row.despachos.fecha_evento) === todayLima)
+    .slice(0, 25);
   const fuelDefinitionByKey = new Map(fuelTypes.map((item) => [item.key, item]));
 
   const fuelRecords: FuelRecord[] = rows.flatMap((row) => {
@@ -165,7 +183,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
           <FuelDashboard fuelTypes={fuelTypes} records={fuelRecords} />
 
           <section className="card table-card portal-table premium-table recent-history-card">
-            <div className="card-title-row"><div><p className="eyebrow">HISTORIAL</p><h2>Abastecimientos recientes</h2></div><span className="quality-badge">Sincronización GESA CONTROL</span></div>
+            <div className="card-title-row"><div><p className="eyebrow">HOY</p><h2>Abastecimientos del día</h2></div><span className="quality-badge">Sincronización GESA CONTROL</span></div>
             <div className="table-wrap">
               <table>
                 <thead><tr><th>Fecha/hora</th><th>Placa</th><th>Km</th><th>Viaje</th><th>Estación</th><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th>Comprobante</th><th></th></tr></thead>
@@ -191,7 +209,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
                       </tr>
                     );
                   })}
-                  {!recentRows.length ? <tr><td colSpan={11} className="empty-row">No hay abastecimientos disponibles para este cliente.</td></tr> : null}
+                  {!recentRows.length ? <tr><td colSpan={11} className="empty-row">No hay abastecimientos registrados hoy.</td></tr> : null}
                 </tbody>
               </table>
             </div>
