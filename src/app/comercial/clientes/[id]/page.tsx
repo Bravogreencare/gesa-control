@@ -98,9 +98,9 @@ export default async function CommercialClientPage({
           <section className="commercial-card commercial-process-card">
             <p className="eyebrow">FLUJO</p>
             <ol>
-              <li><span>1</span><div><strong>Abastecimiento</strong><small>Se genera Ticket / Nota de despacho.</small></div></li>
+              <li><span>1</span><div><strong>Abastecimiento</strong><small>Se genera un Recibo.</small></div></li>
               <li><span>2</span><div><strong>Acumulación</strong><small>Solo si el cliente es consolidado.</small></div></li>
-              <li><span>3</span><div><strong>Corte</strong><small>Se agrupan tickets por periodo y combustible.</small></div></li>
+              <li><span>3</span><div><strong>Corte</strong><small>Se agrupan recibos por periodo y combustible.</small></div></li>
               <li><span>4</span><div><strong>Factura</strong><small>Una factura no mezcla tipos de combustible.</small></div></li>
             </ol>
           </section>
