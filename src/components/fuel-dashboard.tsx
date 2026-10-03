@@ -294,6 +294,20 @@ export default function FuelDashboard({ fuelTypes, records }: Props) {
       .sort((a, b) => b.sortAmount - a.sortAmount);
   }, [stationBreakdown]);
 
+  const stationTotals = useMemo(() => {
+    const totals = new Map<string, { quantity: number; amount: number; unit: string }>();
+
+    stationBreakdown.forEach((row) => {
+      const current = totals.get(row.fuelKey) || { quantity: 0, amount: 0, unit: row.unit };
+      current.quantity += Number(row.quantity || 0);
+      current.amount += Number(row.amount || 0);
+      if (!current.unit) current.unit = row.unit;
+      totals.set(row.fuelKey, current);
+    });
+
+    return totals;
+  }, [stationBreakdown]);
+
   function toggleMonth(key: string) {
     setSelectedMonths((current) => {
       if (!current.length) return [key];
@@ -510,6 +524,25 @@ export default function FuelDashboard({ fuelTypes, records }: Props) {
                 ))}
                 {!stationRows.length ? <tr><td colSpan={Math.max(1, stationColumns.length + 1)} className="empty-row">Sin abastecimientos por estación para el periodo seleccionado.</td></tr> : null}
               </tbody>
+              {stationRows.length ? (
+                <tfoot>
+                  <tr className="station-sum-row">
+                    <td><strong>Sumatoria por combustible</strong></td>
+                    {stationColumns.map((fuel) => {
+                      const sum = stationTotals.get(fuel.key);
+                      return (
+                        <td key={fuel.key}>
+                          {sum
+                            ? stationMode === 'amount'
+                              ? formatMoney(sum.amount)
+                              : `${formatQuantity(sum.quantity)} ${sum.unit || fuel.unit}`
+                            : '—'}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tfoot>
+              ) : null}
             </table>
           </div>
         </article>
