@@ -73,8 +73,8 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
         <div className="product-name">GESA CONTROL</div>
         <div className="product-sub">Portal corporativo</div>
         <nav>
-          <Link className="nav-item active" href="/portal">Inicio</Link>
-          <a className="nav-item">Abastecimientos</a>
+          <Link className="nav-item active" href={`/portal?empresa=${selectedId}`}>Inicio</Link>
+          <Link className="nav-item" href={`/portal/abastecimientos?empresa=${selectedId}`}>Abastecimientos</Link>
           <a className="nav-item">Viajes y rutas</a>
           <a className="nav-item">Rendimiento</a>
           <a className="nav-item">Precios y refinería</a>
