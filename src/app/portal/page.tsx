@@ -2,10 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import LogoutButton from '@/components/logout-button';
 import FuelDashboard, {
-  type FuelEvolutionPoint,
-  type FuelSummaryItem,
-  type StationFuelItem,
-  type TopVehicleItem,
+  type FuelDefinition,
+  type FuelRecord,
 } from '@/components/fuel-dashboard';
 import { createClient } from '@/lib/supabase/server';
 
@@ -17,7 +15,7 @@ function number(value: number, digits = 2) {
   return new Intl.NumberFormat('es-PE', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value || 0);
 }
 
-const fuelTypes: Array<Pick<FuelSummaryItem, 'key' | 'label' | 'unit'>> = [
+const fuelTypes: FuelDefinition[] = [
   { key: 'DIESEL_B5', label: 'Diésel B5', unit: 'gal' },
   { key: 'REGULAR', label: 'G Regular', unit: 'gal' },
   { key: 'PREMIUM', label: 'G Premium', unit: 'gal' },
@@ -44,30 +42,6 @@ function resolveFuelType(productName?: string | null) {
   if (name.includes('DIESEL') || name.includes('B5')) return 'DIESEL_B5';
   return null;
 }
-
-function getWeekStartKey(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  const day = (date.getUTCDay() + 6) % 7;
-  const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - day));
-  return start.toISOString().slice(0, 10);
-}
-
-function formatWeekLabel(key: string) {
-  const date = new Date(`${key}T00:00:00Z`);
-  return new Intl.DateTimeFormat('es-PE', {
-    day: '2-digit',
-    month: 'short',
-    timeZone: 'UTC',
-  }).format(date);
-}
-
-type VehicleAggregate = {
-  plate: string;
-  vehicle: string;
-  amount: number;
-  fuels: Map<string, { quantity: number; amount: number }>;
-};
 
 export default async function PortalPage({ searchParams }: { searchParams: Promise<{ empresa?: string }> }) {
   const supabase = await createClient();
@@ -117,104 +91,26 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
 
   const rows = ((supplies || []) as any[]);
   const recentRows = rows.slice(0, 25);
-
-  const fuelSummary: FuelSummaryItem[] = fuelTypes.map((fuel) => ({
-    ...fuel,
-    quantity: 0,
-    amount: 0,
-    count: 0,
-  }));
-
-  const fuelSummaryByKey = new Map(fuelSummary.map((item) => [item.key, item]));
   const fuelDefinitionByKey = new Map(fuelTypes.map((item) => [item.key, item]));
-  const weekly = new Map<string, FuelEvolutionPoint['values']>();
-  const vehicles = new Map<string, VehicleAggregate>();
-  const stationFuel = new Map<string, StationFuelItem>();
 
-  for (const row of rows) {
+  const fuelRecords: FuelRecord[] = rows.flatMap((row) => {
     const dispatch = row.despachos;
     const fuelKey = resolveFuelType(dispatch?.productos?.nombre);
-    if (!fuelKey) continue;
+    if (!fuelKey || !dispatch?.fecha_evento) return [];
 
-    const quantity = Number(dispatch?.cantidad || 0);
-    const amount = Number(dispatch?.total || 0);
     const definition = fuelDefinitionByKey.get(fuelKey);
-    const summaryItem = fuelSummaryByKey.get(fuelKey);
-    if (summaryItem) {
-      summaryItem.quantity += quantity;
-      summaryItem.amount += amount;
-      summaryItem.count += 1;
-    }
-
-    if (dispatch?.fecha_evento) {
-      const weekKey = getWeekStartKey(dispatch.fecha_evento);
-      if (weekKey) {
-        const values = weekly.get(weekKey) || {};
-        const current = values[fuelKey] || { quantity: 0, amount: 0 };
-        values[fuelKey] = {
-          quantity: current.quantity + quantity,
-          amount: current.amount + amount,
-        };
-        weekly.set(weekKey, values);
-      }
-    }
-
-    const plate = row.vehiculos?.placa || 'SIN-PLACA';
-    const vehicleName = [row.vehiculos?.marca, row.vehiculos?.modelo].filter(Boolean).join(' ') || 'Vehículo de flota';
-    const aggregate = vehicles.get(plate) || {
-      plate,
-      vehicle: vehicleName,
-      amount: 0,
-      fuels: new Map<string, { quantity: number; amount: number }>(),
-    };
-    aggregate.amount += amount;
-    const fuelTotals = aggregate.fuels.get(fuelKey) || { quantity: 0, amount: 0 };
-    fuelTotals.quantity += quantity;
-    fuelTotals.amount += amount;
-    aggregate.fuels.set(fuelKey, fuelTotals);
-    vehicles.set(plate, aggregate);
-
-    const station = dispatch?.estaciones?.nombre || 'Estación sin identificar';
-    const stationKey = `${station}::${fuelKey}`;
-    const stationRow = stationFuel.get(stationKey) || {
-      station,
+    return [{
+      date: dispatch.fecha_evento,
       fuelKey,
       fuelLabel: definition?.label || dispatch?.productos?.nombre || 'Sin clasificar',
       unit: definition?.unit || dispatch?.unidad || '',
-      quantity: 0,
-      amount: 0,
-      count: 0,
-    };
-    stationRow.quantity += quantity;
-    stationRow.amount += amount;
-    stationRow.count += 1;
-    stationFuel.set(stationKey, stationRow);
-  }
-
-  const fuelEvolution: FuelEvolutionPoint[] = Array.from(weekly.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, values]) => ({ period: formatWeekLabel(key), values }));
-
-  const topVehicles: TopVehicleItem[] = Array.from(vehicles.values())
-    .map((vehicle) => {
-      const principal = Array.from(vehicle.fuels.entries()).sort((a, b) => b[1].amount - a[1].amount)[0];
-      const principalKey = principal?.[0] || '';
-      const principalTotals = principal?.[1] || { quantity: 0, amount: 0 };
-      const definition = fuelDefinitionByKey.get(principalKey);
-      return {
-        plate: vehicle.plate,
-        vehicle: vehicle.vehicle,
-        principalFuel: definition?.label || 'Sin clasificar',
-        quantity: principalTotals.quantity,
-        unit: definition?.unit || '',
-        amount: vehicle.amount,
-      };
-    })
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 5);
-
-  const stationBreakdown: StationFuelItem[] = Array.from(stationFuel.values())
-    .sort((a, b) => b.amount - a.amount || a.station.localeCompare(b.station, 'es'));
+      quantity: Number(dispatch?.cantidad || 0),
+      amount: Number(dispatch?.total || 0),
+      station: dispatch?.estaciones?.nombre || 'Estación sin identificar',
+      plate: row.vehiculos?.placa || 'SIN-PLACA',
+      vehicle: [row.vehiculos?.marca, row.vehiculos?.modelo].filter(Boolean).join(' ') || 'Vehículo de flota',
+    }];
+  });
 
   return (
     <main className="portal-shell">
@@ -266,7 +162,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
             <div className="hero-note official-note">Más que combustible,<br/><strong>información para decidir.</strong></div>
           </div>
 
-          <FuelDashboard items={fuelSummary} evolution={fuelEvolution} topVehicles={topVehicles} stationBreakdown={stationBreakdown} />
+          <FuelDashboard fuelTypes={fuelTypes} records={fuelRecords} />
 
           <section className="card table-card portal-table premium-table recent-history-card">
             <div className="card-title-row"><div><p className="eyebrow">HISTORIAL</p><h2>Abastecimientos recientes</h2></div><span className="quality-badge">Sincronización GESA CONTROL</span></div>
