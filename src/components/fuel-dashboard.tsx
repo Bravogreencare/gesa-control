@@ -91,6 +91,25 @@ function formatCompact(value: number) {
   }).format(value || 0);
 }
 
+function BarValueLabel(props: any) {
+  const { x, y, width, height, value } = props;
+  if (x == null || y == null || width == null || height == null || value == null) return null;
+
+  return (
+    <text
+      x={Number(x) + Number(width) + 9}
+      y={Number(y) + Number(height) / 2}
+      fill="#173A5E"
+      fontSize={12}
+      fontWeight={800}
+      dominantBaseline="middle"
+      textAnchor="start"
+    >
+      {String(value)}
+    </text>
+  );
+}
+
 export default function FuelDashboard({ items, evolution, topVehicles, stationBreakdown }: Props) {
   const [mode, setMode] = useState<Mode>('quantity');
   const [stationMode, setStationMode] = useState<Mode>('quantity');
@@ -105,7 +124,9 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
           return {
             ...item,
             value,
-            display: mode === 'quantity' ? `${formatQuantity(value)} ${item.unit}` : formatMoney(value),
+            display: mode === 'quantity'
+              ? `${formatQuantity(value)}\u00A0${item.unit}`
+              : formatMoney(value),
             color: COLORS[item.key] || '#116CB8',
           };
         })
@@ -204,20 +225,38 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
           </div>
           <div className="chart-box chart-box-bar">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} layout="vertical" margin={{ top: 4, right: 105, bottom: 8, left: 10 }}>
+              <BarChart data={barData} layout="vertical" margin={{ top: 4, right: 145, bottom: 8, left: 10 }}>
                 <CartesianGrid stroke="#E8EEF5" horizontal={false} />
-                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#73849A', fontSize: 11 }} tickFormatter={(value: number) => mode === 'amount' ? `S/ ${formatCompact(value)}` : formatCompact(value)} />
-                <YAxis dataKey="label" type="category" width={105} axisLine={false} tickLine={false} tick={{ fill: '#234261', fontSize: 12, fontWeight: 700 }} />
+                <XAxis
+                  type="number"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#73849A', fontSize: 11 }}
+                  tickFormatter={(value: number) => mode === 'amount' ? `S/ ${formatCompact(value)}` : formatCompact(value)}
+                />
+                <YAxis
+                  dataKey="label"
+                  type="category"
+                  width={105}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#234261', fontSize: 12, fontWeight: 700 }}
+                />
                 <Tooltip
                   cursor={{ fill: '#F3F7FB' }}
                   formatter={(value: unknown, _name: unknown, entry: { payload?: { unit?: string } }) => {
                     const numeric = Number(value || 0);
-                    return [mode === 'amount' ? formatMoney(numeric) : `${formatQuantity(numeric)} ${entry.payload?.unit || ''}`, mode === 'amount' ? 'Importe' : 'Cantidad'];
+                    return [
+                      mode === 'amount'
+                        ? formatMoney(numeric)
+                        : `${formatQuantity(numeric)} ${entry.payload?.unit || ''}`,
+                      mode === 'amount' ? 'Importe' : 'Cantidad',
+                    ];
                   }}
                 />
                 <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={24}>
                   {barData.map((item) => <Cell key={item.key} fill={item.color} />)}
-                  <LabelList dataKey="display" position="right" fill="#173A5E" fontSize={12} fontWeight={800} />
+                  <LabelList dataKey="display" content={<BarValueLabel />} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -235,7 +274,18 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
             <div className="donut-wrap">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={91} paddingAngle={1.5} stroke="#FFFFFF" strokeWidth={2}>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={62}
+                    outerRadius={91}
+                    paddingAngle={1.5}
+                    stroke="#FFFFFF"
+                    strokeWidth={2}
+                  >
                     {pieData.map((item) => <Cell key={item.key} fill={item.color} />)}
                   </Pie>
                   <Tooltip formatter={(value: unknown) => formatMoney(Number(value || 0))} />
@@ -276,17 +326,35 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
               <LineChart data={evolutionData} margin={{ top: 10, right: 16, left: 0, bottom: 4 }}>
                 <CartesianGrid stroke="#E8EEF5" strokeDasharray="3 3" />
                 <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fill: '#73849A', fontSize: 11 }} />
-                <YAxis axisLine={false} tickLine={false} width={58} tick={{ fill: '#73849A', fontSize: 11 }} tickFormatter={(value: number) => mode === 'amount' ? `S/ ${formatCompact(value)}` : formatCompact(value)} />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  width={58}
+                  tick={{ fill: '#73849A', fontSize: 11 }}
+                  tickFormatter={(value: number) => mode === 'amount' ? `S/ ${formatCompact(value)}` : formatCompact(value)}
+                />
                 <Tooltip
                   formatter={(value: unknown, name: unknown) => {
                     const numeric = Number(value || 0);
                     const item = activeItems.find((fuel) => fuel.label === String(name));
-                    return [mode === 'amount' ? formatMoney(numeric) : `${formatQuantity(numeric)} ${item?.unit || ''}`, String(name)];
+                    return [
+                      mode === 'amount' ? formatMoney(numeric) : `${formatQuantity(numeric)} ${item?.unit || ''}`,
+                      String(name),
+                    ];
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
                 {activeItems.map((item) => (
-                  <Line key={item.key} type="monotone" dataKey={item.key} name={item.label} stroke={COLORS[item.key] || '#116CB8'} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  <Line
+                    key={item.key}
+                    type="monotone"
+                    dataKey={item.key}
+                    name={item.label}
+                    stroke={COLORS[item.key] || '#116CB8'}
+                    strokeWidth={2.5}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
                 ))}
               </LineChart>
             </ResponsiveContainer>
@@ -370,7 +438,11 @@ export default function FuelDashboard({ items, evolution, topVehicles, stationBr
                     })}
                   </tr>
                 ))}
-                {!stationRows.length ? <tr><td colSpan={Math.max(1, stationColumns.length + 1)} className="empty-row">Sin abastecimientos por estación.</td></tr> : null}
+                {!stationRows.length ? (
+                  <tr>
+                    <td colSpan={Math.max(1, stationColumns.length + 1)} className="empty-row">Sin abastecimientos por estación.</td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
