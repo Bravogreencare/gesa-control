@@ -22,11 +22,12 @@ export default function LoginForm() {
     const supabase = createClient();
 
     if (mode === 'register') {
+      const redirectUrl = `${window.location.origin}/login`;
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: 'https://gesa-control-demo.onrender.com/login',
+          emailRedirectTo: redirectUrl,
         },
       });
 
@@ -36,7 +37,7 @@ export default function LoginForm() {
         return;
       }
 
-      setMessage('Acceso creado. Si Supabase solicita verificación, revisa tu correo corporativo y confirma el enlace. Luego vuelve a iniciar sesión.');
+      setMessage('Acceso creado. Revisa tu correo corporativo y confirma el enlace. Después volverás a GESA CONTROL para iniciar sesión.');
       setMode('login');
       setLoading(false);
       return;
