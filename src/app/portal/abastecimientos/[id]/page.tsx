@@ -39,8 +39,8 @@ export default async function SupplyDetailPage({ params }: { params: Promise<{ i
   const row = data as any;
   const d = row.despachos;
   const doc = d?.despacho_documentos?.[0]?.comprobantes;
-  const ticketNota = d?.numero_ticket_nota || d?.numero_nota_despacho || d?.numero_recibo || '—';
-  const ticketFile = d?.archivo_ticket_nota_path || d?.archivo_nota_despacho_path;
+  const receiptNumber = d?.numero_recibo || d?.numero_ticket_nota || d?.numero_nota_despacho || '—';
+  const receiptFile = d?.archivo_ticket_nota_path || d?.archivo_nota_despacho_path;
   const controlLabel = row.empresas?.etiqueta_control_operativo === 'CECO' ? 'CECO' : 'Viaje';
   const controlValue = row.referencia_control || row.viajes?.codigo_corto || '';
   const consolidatedBilling = row.empresas?.modalidad_facturacion === 'CONSOLIDADA';
@@ -90,16 +90,16 @@ export default async function SupplyDetailPage({ params }: { params: Promise<{ i
 
         <div className="detail-columns">
           <section>
-            <h2>Ticket / Nota de despacho</h2>
+            <h2>Recibo</h2>
             <dl>
-              <div><dt>Número</dt><dd>{ticketNota}</dd></div>
+              <div><dt>Número</dt><dd>{receiptNumber}</dd></div>
               <div><dt>ID externo</dt><dd>{d?.id_externo || '—'}</dd></div>
               <div><dt>Turno</dt><dd>{d?.turno || '—'}</dd></div>
               <div><dt>Isla</dt><dd>{d?.isla || '—'}</dd></div>
               <div><dt>Lado / manguera</dt><dd>{[d?.lado,d?.manguera].filter(Boolean).join(' / ') || '—'}</dd></div>
               <div><dt>Dirección</dt><dd>{d?.estaciones?.direccion || '—'}</dd></div>
             </dl>
-            {ticketFile ? <div className="detail-attachment">{isHttpUrl(ticketFile) ? <a href={ticketFile} target="_blank" rel="noreferrer"><Paperclip size={15} /> Ver Ticket / Nota</a> : <span><Paperclip size={15} /> Ticket / Nota adjunta</span>}</div> : <p className="muted">El archivo del Ticket / Nota todavía no está adjunto.</p>}
+            {receiptFile ? <div className="detail-attachment">{isHttpUrl(receiptFile) ? <a href={receiptFile} target="_blank" rel="noreferrer"><Paperclip size={15} /> Ver recibo</a> : <span><Paperclip size={15} /> Recibo adjunto</span>}</div> : <p className="muted">El archivo del recibo todavía no está adjunto.</p>}
           </section>
           <section>
             <h2>Factura / comprobante</h2>
@@ -115,7 +115,7 @@ export default async function SupplyDetailPage({ params }: { params: Promise<{ i
                 <div><dt>Cobranza</dt><dd>{doc.estado_cobranza || '—'}</dd></div>
               </dl>
               {doc.archivo_path ? <div className="detail-attachment">{isHttpUrl(doc.archivo_path) ? <a href={doc.archivo_path} target="_blank" rel="noreferrer"><Paperclip size={15} /> Ver comprobante</a> : <span><Paperclip size={15} /> Comprobante adjunto</span>}</div> : null}
-            </> : <p className="muted">{consolidatedBilling ? 'Este Ticket / Nota está pendiente de incorporarse a una factura consolidada del mismo combustible.' : 'El abastecimiento todavía no tiene un comprobante asociado.'}</p>}
+            </> : <p className="muted">{consolidatedBilling ? 'Este recibo está pendiente de incorporarse a una factura consolidada del mismo combustible.' : 'El abastecimiento todavía no tiene un comprobante asociado.'}</p>}
           </section>
         </div>
       </section>
