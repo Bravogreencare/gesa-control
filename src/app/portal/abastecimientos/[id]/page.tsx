@@ -26,10 +26,10 @@ export default async function SupplyDetailPage({ params }: { params: Promise<{ i
       vehiculos(id,placa,marca,modelo,tipo),
       viajes(id,codigo_corto,periodo,origen,destino),
       despachos(
-        id,id_externo,numero_recibo,numero_nota_despacho,archivo_nota_despacho_path,fecha_evento,turno,isla,lado,manguera,cantidad,unidad,precio_unitario,total,moneda,
+        id,id_externo,numero_recibo,numero_nota_despacho,numero_ticket_nota,archivo_nota_despacho_path,archivo_ticket_nota_path,fecha_evento,turno,isla,lado,manguera,cantidad,unidad,precio_unitario,total,moneda,
         estaciones(id,nombre,direccion,distrito,provincia,departamento),
         productos(id,nombre,codigo),
-        despacho_documentos(comprobantes(id,ruc_emisor,ruc_receptor,tipo,serie,numero,fecha_emision,subtotal,igv,total,moneda,estado,archivo_path))
+        despacho_documentos(comprobantes(id,ruc_emisor,ruc_receptor,tipo,serie,numero,fecha_emision,subtotal,igv,total,moneda,estado,archivo_path,estado_cobranza))
       )
     `)
     .eq('id', id)
@@ -39,6 +39,8 @@ export default async function SupplyDetailPage({ params }: { params: Promise<{ i
   const row = data as any;
   const d = row.despachos;
   const doc = d?.despacho_documentos?.[0]?.comprobantes;
+  const ticketNota = d?.numero_ticket_nota || d?.numero_nota_despacho || d?.numero_recibo || '—';
+  const ticketFile = d?.archivo_ticket_nota_path || d?.archivo_nota_despacho_path;
   const controlLabel = row.empresas?.etiqueta_control_operativo === 'CECO' ? 'CECO' : 'Viaje';
   const controlValue = row.referencia_control || row.viajes?.codigo_corto || '';
   const consolidatedBilling = row.empresas?.modalidad_facturacion === 'CONSOLIDADA';
@@ -66,7 +68,7 @@ export default async function SupplyDetailPage({ params }: { params: Promise<{ i
           </div>
           <div className="detail-status-stack">
             <span className="quality-badge">{row.estado_conciliacion}</span>
-            <span className="neutral-badge">{consolidatedBilling ? 'Facturación consolidada' : 'Facturación por consumo'}</span>
+            <span className="neutral-badge">{consolidatedBilling ? 'Facturación consolidada' : 'Factura por abastecimiento'}</span>
           </div>
         </div>
 
@@ -82,36 +84,22 @@ export default async function SupplyDetailPage({ params }: { params: Promise<{ i
           <article><span>Importe</span><strong>{money(Number(d?.total || 0))}</strong></article>
           <article className="detail-edit-tile">
             <span>Corrección cliente</span>
-            <SupplyInlineEditor
-              abastecimientoId={row.id}
-              documentoIdentidad={row.documento_identidad}
-              referenciaControl={controlValue}
-              kilometraje={row.kilometraje}
-              controlLabel={controlLabel}
-              canEdit={canEdit}
-            />
+            <SupplyInlineEditor abastecimientoId={row.id} documentoIdentidad={row.documento_identidad} referenciaControl={controlValue} kilometraje={row.kilometraje} controlLabel={controlLabel} canEdit={canEdit} />
           </article>
         </div>
 
         <div className="detail-columns">
           <section>
-            <h2>Datos del despacho</h2>
+            <h2>Ticket / Nota de despacho</h2>
             <dl>
-              <div><dt>Ticket / recibo</dt><dd>{d?.numero_recibo || '—'}</dd></div>
-              <div><dt>Nota de despacho</dt><dd>{d?.numero_nota_despacho || '—'}</dd></div>
+              <div><dt>Número</dt><dd>{ticketNota}</dd></div>
               <div><dt>ID externo</dt><dd>{d?.id_externo || '—'}</dd></div>
               <div><dt>Turno</dt><dd>{d?.turno || '—'}</dd></div>
               <div><dt>Isla</dt><dd>{d?.isla || '—'}</dd></div>
               <div><dt>Lado / manguera</dt><dd>{[d?.lado,d?.manguera].filter(Boolean).join(' / ') || '—'}</dd></div>
               <div><dt>Dirección</dt><dd>{d?.estaciones?.direccion || '—'}</dd></div>
             </dl>
-            {d?.archivo_nota_despacho_path ? (
-              <div className="detail-attachment">
-                {isHttpUrl(d.archivo_nota_despacho_path)
-                  ? <a href={d.archivo_nota_despacho_path} target="_blank" rel="noreferrer"><Paperclip size={15} /> Ver nota de despacho</a>
-                  : <span><Paperclip size={15} /> Nota de despacho adjunta</span>}
-              </div>
-            ) : null}
+            {ticketFile ? <div className="detail-attachment">{isHttpUrl(ticketFile) ? <a href={ticketFile} target="_blank" rel="noreferrer"><Paperclip size={15} /> Ver Ticket / Nota</a> : <span><Paperclip size={15} /> Ticket / Nota adjunta</span>}</div> : <p className="muted">El archivo del Ticket / Nota todavía no está adjunto.</p>}
           </section>
           <section>
             <h2>Factura / comprobante</h2>
@@ -124,15 +112,10 @@ export default async function SupplyDetailPage({ params }: { params: Promise<{ i
                 <div><dt>Subtotal</dt><dd>{money(Number(doc.subtotal || 0))}</dd></div>
                 <div><dt>IGV</dt><dd>{money(Number(doc.igv || 0))}</dd></div>
                 <div><dt>Total</dt><dd><strong>{money(Number(doc.total || 0))}</strong></dd></div>
+                <div><dt>Cobranza</dt><dd>{doc.estado_cobranza || '—'}</dd></div>
               </dl>
-              {doc.archivo_path ? (
-                <div className="detail-attachment">
-                  {isHttpUrl(doc.archivo_path)
-                    ? <a href={doc.archivo_path} target="_blank" rel="noreferrer"><Paperclip size={15} /> Ver comprobante</a>
-                    : <span><Paperclip size={15} /> Comprobante adjunto</span>}
-                </div>
-              ) : null}
-            </> : <p className="muted">{consolidatedBilling ? 'Este despacho está pendiente de incorporarse a una factura consolidada.' : 'El despacho todavía no tiene un comprobante asociado.'}</p>}
+              {doc.archivo_path ? <div className="detail-attachment">{isHttpUrl(doc.archivo_path) ? <a href={doc.archivo_path} target="_blank" rel="noreferrer"><Paperclip size={15} /> Ver comprobante</a> : <span><Paperclip size={15} /> Comprobante adjunto</span>}</div> : null}
+            </> : <p className="muted">{consolidatedBilling ? 'Este Ticket / Nota está pendiente de incorporarse a una factura consolidada del mismo combustible.' : 'El abastecimiento todavía no tiene un comprobante asociado.'}</p>}
           </section>
         </div>
       </section>
