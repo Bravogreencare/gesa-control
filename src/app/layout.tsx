@@ -7,6 +7,7 @@ import './period-filter.css';
 import './dashboard-table-fixes.css';
 import './donut-tooltip.css';
 import './abastecimientos.css';
+import './client-modules.css';
 import './gesa-logo-embedded.css';
 
 export const metadata: Metadata = {
