@@ -79,7 +79,7 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
             <div>
               <p className="eyebrow">PORTAL DEL CLIENTE · FACTURACIÓN</p>
               <h1>Facturación y crédito</h1>
-              <p className="muted">Consulta tus condiciones comerciales, cortes, facturas y tickets pendientes.</p>
+              <p className="muted">Consulta tus condiciones comerciales, cortes, facturas y recibos pendientes.</p>
             </div>
             <div className="module-heading-badges">
               <span className="quality-badge">{consolidated ? 'Consolidada' : 'Por abastecimiento'}</span>
@@ -91,7 +91,7 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
             <article className="card client-info-card">
               <span className="client-card-label">Modalidad</span>
               <strong>{consolidated ? 'Facturación consolidada' : 'Factura por cada abastecimiento'}</strong>
-              <small>{consolidated ? 'Los tickets se agrupan al corte, siempre por tipo de combustible.' : 'Cada Ticket / Nota de despacho genera su propio comprobante.'}</small>
+              <small>{consolidated ? 'Los recibos se agrupan al corte, siempre por tipo de combustible.' : 'Cada recibo genera su propio comprobante.'}</small>
             </article>
             <article className="card client-info-card">
               <span className="client-card-label">Fecha / regla de corte</span>
@@ -114,25 +114,25 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
             <article className="card kpi premium-kpi"><span>Facturado</span><strong>{money(billed)}</strong><small>Comprobantes visibles</small></article>
             <article className="card kpi premium-kpi"><span>Saldo pendiente</span><strong>{money(totalPending)}</strong><small>Cobranza registrada</small></article>
             <article className="card kpi premium-kpi"><span>Facturas</span><strong>{invoiceRows.length}</strong><small>Documentos emitidos</small></article>
-            <article className="card kpi premium-kpi"><span>Tickets por facturar</span><strong>{pendingRows.length}</strong><small>{consolidated ? 'Esperando corte / consolidación' : 'Pendientes de comprobante'}</small></article>
+            <article className="card kpi premium-kpi"><span>Recibos por facturar</span><strong>{pendingRows.length}</strong><small>{consolidated ? 'Esperando corte / consolidación' : 'Pendientes de comprobante'}</small></article>
           </section>
 
           {consolidated ? (
             <section className="card client-section-card">
               <div className="card-title-row">
-                <div><p className="eyebrow">PRÓXIMA CONSOLIDACIÓN</p><h2>Tickets pendientes por combustible</h2></div>
+                <div><p className="eyebrow">PRÓXIMA CONSOLIDACIÓN</p><h2>Recibos pendientes por combustible</h2></div>
                 <span className="neutral-badge">Nunca se mezclan combustibles en una factura</span>
               </div>
               <div className="consolidation-grid">
                 {Array.from(pendingByProduct.values()).map((group) => (
                   <article className="consolidation-card" key={group.name}>
                     <strong>{group.name}</strong>
-                    <span>{group.count} tickets</span>
+                    <span>{group.count} recibos</span>
                     <b>{money(group.amount)}</b>
                     <small>{group.from && group.to ? `${date(group.from)} - ${date(group.to)}` : 'Sin rango disponible'}</small>
                   </article>
                 ))}
-                {!pendingRows.length ? <p className="muted">No hay tickets pendientes de consolidación.</p> : null}
+                {!pendingRows.length ? <p className="muted">No hay recibos pendientes de consolidación.</p> : null}
               </div>
             </section>
           ) : null}
@@ -145,7 +145,7 @@ export default async function FacturacionPage({ searchParams }: { searchParams: 
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>Factura</th><th>Emisión</th><th>Periodo</th><th>Combustible</th><th>Tickets</th><th>Neto</th><th>IGV</th><th>Total</th><th>Vence</th><th>Saldo</th><th>Estado</th><th>Archivo</th></tr>
+                  <tr><th>Factura</th><th>Emisión</th><th>Periodo</th><th>Combustible</th><th>Recibos</th><th>Neto</th><th>IGV</th><th>Total</th><th>Vence</th><th>Saldo</th><th>Estado</th><th>Archivo</th></tr>
                 </thead>
                 <tbody>
                   {invoiceRows.map((row) => (
