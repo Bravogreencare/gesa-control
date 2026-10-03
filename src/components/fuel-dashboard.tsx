@@ -82,13 +82,14 @@ function monthKey(value: string) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
-function monthLabel(key: string) {
+function monthChipLabel(key: string) {
   const [year, month] = key.split('-').map(Number);
-  return new Intl.DateTimeFormat('es-PE', {
-    month: 'long',
+  const raw = new Intl.DateTimeFormat('es-PE', {
+    month: 'short',
     year: 'numeric',
     timeZone: 'UTC',
-  }).format(new Date(Date.UTC(year, month - 1, 1)));
+  }).format(new Date(Date.UTC(year, month - 1, 1))).replace('.', '');
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
 function weekStartKey(value: string) {
@@ -143,12 +144,6 @@ export default function FuelDashboard({ fuelTypes, records }: Props) {
       return key ? allowed.has(key) : false;
     });
   }, [records, selectedMonths]);
-
-  const periodLabel = useMemo(() => {
-    if (!selectedMonths.length) return 'Todos los meses';
-    if (selectedMonths.length === 1) return monthLabel(selectedMonths[0]);
-    return `${selectedMonths.length} meses seleccionados`;
-  }, [selectedMonths]);
 
   const summaries = useMemo(() => {
     return fuelTypes.map((fuel) => {
@@ -318,38 +313,37 @@ export default function FuelDashboard({ fuelTypes, records }: Props) {
           <h2>Indicadores de consumo</h2>
           <p className="muted">Compara consumo, gasto, evolución, vehículos y estaciones según el periodo seleccionado.</p>
         </div>
+      </div>
 
-        <details className="month-filter">
-          <summary>
-            <span className="month-filter-caption">Periodo</span>
-            <strong>{periodLabel}</strong>
-            <span className="month-filter-chevron">▾</span>
-          </summary>
-          <div className="month-filter-menu">
-            <button
-              type="button"
-              className={!selectedMonths.length ? 'month-filter-all active' : 'month-filter-all'}
-              onClick={() => setSelectedMonths([])}
-            >
-              Todos los meses
-            </button>
-            <div className="month-filter-options">
-              {availableMonths.map((key) => {
-                const checked = !selectedMonths.length || selectedMonths.includes(key);
-                return (
-                  <label key={key} className="month-filter-option">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleMonth(key)}
-                    />
-                    <span>{monthLabel(key)}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        </details>
+      <div className="month-chip-filter" role="group" aria-label="Filtrar por mes">
+        <span className="month-chip-title">Periodo</span>
+        <button
+          type="button"
+          className={!selectedMonths.length ? 'month-chip active' : 'month-chip'}
+          onClick={() => setSelectedMonths([])}
+          aria-pressed={!selectedMonths.length}
+        >
+          Todos
+        </button>
+        <div className="month-chip-scroll">
+          {availableMonths.map((key) => {
+            const active = selectedMonths.includes(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                className={active ? 'month-chip active' : 'month-chip'}
+                onClick={() => toggleMonth(key)}
+                aria-pressed={active}
+              >
+                {monthChipLabel(key)}
+              </button>
+            );
+          })}
+        </div>
+        {selectedMonths.length > 1 ? (
+          <span className="month-chip-count">{selectedMonths.length} meses</span>
+        ) : null}
       </div>
 
       <div className="dashboard-analytics-grid">
