@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/browser';
 export default function LoginForm() {
   const router = useRouter();
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,15 +20,14 @@ export default function LoginForm() {
     setMessage('');
 
     const supabase = createClient();
+    const normalized = identifier.trim().toLowerCase();
 
     if (mode === 'register') {
       const redirectUrl = `${window.location.origin}/login`;
       const { error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: normalized,
         password,
-        options: {
-          emailRedirectTo: redirectUrl,
-        },
+        options: { emailRedirectTo: redirectUrl },
       });
 
       if (signUpError) {
@@ -43,28 +42,36 @@ export default function LoginForm() {
       return;
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const email = normalized === 'commercial' ? 'commercial@gesacontrol.local' : normalized;
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (signInError) {
-      setError('No se pudo iniciar sesión. Verifica tu correo y contraseña.');
+    if (signInError || !data.user) {
+      setError('No se pudo iniciar sesión. Verifica tu usuario/correo y contraseña.');
       setLoading(false);
       return;
     }
 
-    router.push('/portal');
+    const { data: internalProfile } = await supabase
+      .from('usuarios_internos_gesa')
+      .select('rol')
+      .eq('usuario_id', data.user.id)
+      .eq('activo', true)
+      .maybeSingle();
+
+    router.push(internalProfile ? '/comercial' : '/portal');
     router.refresh();
   }
 
   return (
     <form className="login-form" onSubmit={handleSubmit}>
       <label>
-        Correo corporativo
+        {mode === 'login' ? 'Usuario o correo' : 'Correo corporativo'}
         <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="usuario@empresa.com"
-          autoComplete="email"
+          type={mode === 'register' ? 'email' : 'text'}
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+          placeholder={mode === 'login' ? 'usuario o correo@empresa.com' : 'usuario@empresa.com'}
+          autoComplete="username"
           required
         />
       </label>
