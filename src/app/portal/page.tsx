@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import LogoutButton from '@/components/logout-button';
+import FuelSummaryToggle, { type FuelSummaryItem } from '@/components/fuel-summary-toggle';
 import { createClient } from '@/lib/supabase/server';
 
 function money(value: number) {
@@ -9,6 +10,34 @@ function money(value: number) {
 
 function number(value: number, digits = 2) {
   return new Intl.NumberFormat('es-PE', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value || 0);
+}
+
+const fuelTypes: Array<Pick<FuelSummaryItem, 'key' | 'label' | 'unit'>> = [
+  { key: 'DIESEL_B5', label: 'Diésel B5', unit: 'gal' },
+  { key: 'REGULAR', label: 'Gasolina regular', unit: 'gal' },
+  { key: 'PREMIUM', label: 'Gasolina premium', unit: 'gal' },
+  { key: 'GNV', label: 'GNV', unit: 'm³' },
+  { key: 'GLP', label: 'GLP', unit: 'L' },
+  { key: 'GNL', label: 'GNL', unit: 'kg' },
+];
+
+function normalizeProductName(value?: string | null) {
+  return (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+}
+
+function resolveFuelType(productName?: string | null) {
+  const name = normalizeProductName(productName);
+  if (name.includes('GNV')) return 'GNV';
+  if (name.includes('GLP')) return 'GLP';
+  if (name.includes('GNL')) return 'GNL';
+  if (name.includes('PREMIUM')) return 'PREMIUM';
+  if (name.includes('REGULAR')) return 'REGULAR';
+  if (name.includes('DIESEL') || name.includes('B5')) return 'DIESEL_B5';
+  return null;
 }
 
 export default async function PortalPage({ searchParams }: { searchParams: Promise<{ empresa?: string }> }) {
@@ -55,12 +84,30 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
     `)
     .eq('empresa_id', selectedId)
     .order('creado_en', { ascending: false })
-    .limit(25);
+    .limit(1000);
 
   const rows = ((supplies || []) as any[]);
-  const totalGallons = rows.reduce((acc, row) => acc + Number(row.despachos?.cantidad || 0), 0);
+  const recentRows = rows.slice(0, 25);
   const totalSpent = rows.reduce((acc, row) => acc + Number(row.despachos?.total || 0), 0);
   const uniqueVehicles = new Set(rows.map((r) => r.vehiculos?.id).filter(Boolean)).size;
+
+  const fuelSummary: FuelSummaryItem[] = fuelTypes.map((fuel) => ({
+    ...fuel,
+    quantity: 0,
+    amount: 0,
+    count: 0,
+  }));
+
+  const fuelSummaryByKey = new Map(fuelSummary.map((item) => [item.key, item]));
+  for (const row of rows) {
+    const fuelKey = resolveFuelType(row.despachos?.productos?.nombre);
+    if (!fuelKey) continue;
+    const item = fuelSummaryByKey.get(fuelKey);
+    if (!item) continue;
+    item.quantity += Number(row.despachos?.cantidad || 0);
+    item.amount += Number(row.despachos?.total || 0);
+    item.count += 1;
+  }
 
   return (
     <main className="portal-shell">
@@ -112,11 +159,13 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
             <div className="hero-note official-note">Más que combustible,<br/><strong>información para decidir.</strong></div>
           </div>
 
+          <FuelSummaryToggle items={fuelSummary} />
+
           <section className="kpi-grid four">
-            <article className="card kpi premium-kpi"><span>Galones visibles</span><strong>{number(totalGallons, 3)}</strong><small>{rows.length} registros cargados</small></article>
-            <article className="card kpi premium-kpi"><span>Importe visible</span><strong>{money(totalSpent)}</strong><small>Fuente transaccional GESA</small></article>
+            <article className="card kpi premium-kpi"><span>Importe total</span><strong>{money(totalSpent)}</strong><small>Fuente transaccional GESA</small></article>
             <article className="card kpi premium-kpi"><span>Abastecimientos</span><strong>{rows.length}</strong><small>Según acceso actual</small></article>
             <article className="card kpi premium-kpi"><span>Vehículos identificados</span><strong>{uniqueVehicles}</strong><small>Flota visible del cliente</small></article>
+            <article className="card kpi premium-kpi"><span>Tipos con consumo</span><strong>{fuelSummary.filter((item) => item.count > 0).length}</strong><small>De 6 categorías configuradas</small></article>
           </section>
 
           <section className="card table-card portal-table premium-table">
@@ -125,7 +174,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
               <table>
                 <thead><tr><th>Fecha/hora</th><th>Placa</th><th>Km</th><th>Viaje</th><th>Estación</th><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Importe</th><th>Comprobante</th><th></th></tr></thead>
                 <tbody>
-                  {rows.map((row) => {
+                  {recentRows.map((row) => {
                     const d = row.despachos;
                     const doc = d?.despacho_documentos?.[0]?.comprobantes;
                     return (
@@ -144,7 +193,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
                       </tr>
                     );
                   })}
-                  {!rows.length ? <tr><td colSpan={11} className="empty-row">No hay abastecimientos disponibles para este cliente.</td></tr> : null}
+                  {!recentRows.length ? <tr><td colSpan={11} className="empty-row">No hay abastecimientos disponibles para este cliente.</td></tr> : null}
                 </tbody>
               </table>
             </div>
