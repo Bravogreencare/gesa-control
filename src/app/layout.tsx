@@ -10,6 +10,7 @@ import './abastecimientos.css';
 import './client-modules.css';
 import './commercial.css';
 import './gesa-logo-embedded.css';
+import './login-refresh.css';
 
 export const metadata: Metadata = {
   title: 'GESA CONTROL',
