@@ -8,12 +8,15 @@ import FuelDashboard, {
 } from '@/components/fuel-dashboard';
 import { createClient } from '@/lib/supabase/server';
 
+const moneyFormatter = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
+const numberFormatter = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+
 function money(value: number) {
-  return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value || 0);
+  return moneyFormatter.format(value || 0);
 }
 
-function number(value: number, digits = 2) {
-  return new Intl.NumberFormat('es-PE', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value || 0);
+function number(value: number) {
+  return numberFormatter.format(value || 0);
 }
 
 function limaDateKey(value: string | Date) {
@@ -29,6 +32,14 @@ function limaDateKey(value: string | Date) {
   const month = parts.find((part) => part.type === 'month')?.value;
   const day = parts.find((part) => part.type === 'day')?.value;
   return year && month && day ? `${year}-${month}-${day}` : null;
+}
+
+function limaDayUtcBounds() {
+  const key = limaDateKey(new Date());
+  if (!key) return null;
+  const start = new Date(`${key}T05:00:00.000Z`);
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  return { start: start.toISOString(), end: end.toISOString() };
 }
 
 const fuelTypes: FuelDefinition[] = [
@@ -88,28 +99,54 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
   const selectedId = available.some((m) => m.empresa_id === params.empresa) ? params.empresa! : available[0].empresa_id;
   const membership = available.find((m) => m.empresa_id === selectedId)!;
   const company = membership.empresas;
+  const dayBounds = limaDayUtcBounds();
 
-  const { data: supplies } = await supabase
+  const analyticsQuery = supabase
     .from('abastecimientos')
     .select(`
-      id, kilometraje, estado_conciliacion, creado_en,
-      vehiculos(id,placa,marca,modelo),
-      viajes(id,codigo_corto,periodo),
+      id, creado_en,
+      vehiculos(placa,marca,modelo),
       despachos(
-        id,fecha_evento,numero_recibo,numero_nota_despacho,numero_ticket_nota,cantidad,unidad,precio_unitario,total,moneda,
-        estaciones(id,nombre), productos(id,nombre),
-        despacho_documentos(comprobantes(id,tipo,serie,numero,total,fecha_emision))
+        fecha_evento,cantidad,unidad,total,
+        estaciones(nombre),
+        productos(nombre)
       )
     `)
     .eq('empresa_id', selectedId)
     .order('creado_en', { ascending: false })
     .limit(1000);
 
-  const rows = ((supplies || []) as any[]);
-  const todayLima = limaDateKey(new Date());
-  const recentRows = rows
-    .filter((row) => row.despachos?.fecha_evento && limaDateKey(row.despachos.fecha_evento) === todayLima)
-    .slice(0, 25);
+  let recentQuery = supabase
+    .from('abastecimientos')
+    .select(`
+      id, kilometraje, creado_en,
+      vehiculos(placa),
+      viajes(codigo_corto),
+      despachos!inner(
+        fecha_evento,numero_recibo,numero_nota_despacho,numero_ticket_nota,
+        cantidad,unidad,precio_unitario,total,
+        estaciones(nombre),
+        productos(nombre),
+        despacho_documentos(comprobantes(serie,numero))
+      )
+    `)
+    .eq('empresa_id', selectedId)
+    .order('creado_en', { ascending: false })
+    .limit(50);
+
+  if (dayBounds) {
+    recentQuery = recentQuery
+      .gte('despachos.fecha_evento', dayBounds.start)
+      .lt('despachos.fecha_evento', dayBounds.end);
+  }
+
+  const [{ data: analyticsSupplies }, { data: recentSupplies }] = await Promise.all([
+    analyticsQuery,
+    recentQuery,
+  ]);
+
+  const rows = (analyticsSupplies || []) as any[];
+  const recentRows = ((recentSupplies || []) as any[]).slice(0, 25);
   const fuelDefinitionByKey = new Map(fuelTypes.map((item) => [item.key, item]));
 
   const fuelRecords: FuelRecord[] = rows.flatMap((row) => {
@@ -181,7 +218,7 @@ export default async function PortalPage({ searchParams }: { searchParams: Promi
                         <td>{row.viajes?.codigo_corto || '—'}</td>
                         <td>{d?.estaciones?.nombre || '—'}</td>
                         <td>{productLabel || '—'}</td>
-                        <td>{number(Number(d?.cantidad || 0), 3)} {d?.unidad || ''}</td>
+                        <td>{number(Number(d?.cantidad || 0))} {d?.unidad || ''}</td>
                         <td>{money(Number(d?.precio_unitario || 0))}</td>
                         <td><strong>{money(Number(d?.total || 0))}</strong></td>
                         <td>{ticketNota}</td>
