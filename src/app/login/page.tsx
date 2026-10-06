@@ -47,19 +47,11 @@ export default function LoginPage() {
             ))}
           </div>
         </div>
-
-        <div className="market-gesa-storefront" aria-hidden="true">
-          <div className="market-gesa-fascia">
-            <span className="market-word">market</span>
-            <span className="market-leaf" />
-            <span className="market-citrus">
-              <i /><i /><i /><i />
-            </span>
-            <strong>GESA</strong>
-          </div>
-          <div className="market-gesa-glass">
-            <i /><i /><i /><i />
-          </div>
+        <div className="market-gesa-brand-chip" aria-label="Market GESA">
+          <span className="market-word">market</span>
+          <span className="market-leaf" />
+          <span className="market-citrus"><i /><i /><i /><i /></span>
+          <strong>GESA</strong>
         </div>
 
         <small className="login-brand-footer gesa-login-footer">GESA CONTROL · acceso privado por empresa</small>
