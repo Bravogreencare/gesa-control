@@ -60,3 +60,103 @@
 @media(max-width:1180px){.gesa-login-v2{grid-template-columns:1fr 480px}.gesa-login-copy{width:72%}.market-gesa-storefront{width:245px;right:3.2%}.gesa-login-v2 .login-brand-panel h1{font-size:39px}.gesa-login-description{font-size:15px!important}.gesa-login-features{gap:9px}.gesa-login-feature{padding-right:9px}.gesa-login-feature-icon{width:43px;height:43px}}
 @media(max-width:960px){.gesa-login-v2{grid-template-columns:1fr}.gesa-login-hero{display:none}.gesa-login-card-wrap{min-height:100vh;padding:28px}.gesa-login-card{padding:34px}.gesa-login-card-wrap:after{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:linear-gradient(90deg,#075dcc 0 46%,#df263d 46% 53%,#1f9a5a 53% 100%)}}
 @media(max-width:560px){.gesa-login-card-wrap{padding:20px}.gesa-login-card{padding:28px 22px;border-radius:20px!important}.gesa-login-card h2{font-size:31px}.gesa-login-card .login-card-logo{width:150px}.gesa-login-input-wrap{height:52px}}
+
+
+/* Login refinement: align production UI with approved concept */
+.gesa-login-hero{
+  background-image:
+    linear-gradient(90deg,rgba(2,24,52,.94) 0%,rgba(4,40,82,.80) 39%,rgba(4,46,94,.48) 61%,rgba(4,46,94,.12) 86%,rgba(4,46,94,.04) 100%),
+    url('https://www.grifosespinoza.com/wp-content/uploads/2026/06/PORTADA-BIEN-2048x534.webp')!important;
+  background-position:58% center!important;
+}
+.gesa-login-copy{width:min(760px,82%)}
+.gesa-login-v2 .login-brand-panel h1{
+  font-size:clamp(36px,2.9vw,47px);
+  line-height:1.03;
+  max-width:760px;
+  letter-spacing:-1.25px;
+}
+.gesa-login-description{max-width:620px!important}
+.gesa-login-features{max-width:660px;gap:16px;margin-top:28px}
+.gesa-login-feature{flex:1;padding-right:15px}
+.gesa-login-feature-icon{width:46px;height:46px}
+.gesa-login-footer{bottom:25px}
+
+.market-gesa-storefront{display:none!important}
+.market-gesa-brand-chip{
+  position:absolute;
+  right:4.6%;
+  bottom:5.8%;
+  width:168px;
+  height:58px;
+  border-radius:12px;
+  background:#117ab8;
+  border-top:5px solid #f3b321;
+  color:#fff;
+  z-index:1;
+  box-shadow:0 12px 30px rgba(0,20,50,.24);
+  display:flex;
+  align-items:flex-start;
+  padding:8px 12px;
+  opacity:.95;
+}
+.market-gesa-brand-chip .market-word{
+  font-size:10px;
+  font-weight:800;
+  font-style:italic;
+  line-height:1;
+}
+.market-gesa-brand-chip strong{
+  position:absolute;
+  left:12px;
+  bottom:5px;
+  font-size:25px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:.01em;
+}
+.market-gesa-brand-chip .market-leaf{
+  position:absolute;
+  left:55px;
+  top:8px;
+  width:9px;
+  height:13px;
+  background:#3da65c;
+  border-radius:100% 0 100% 0;
+  transform:rotate(-30deg);
+}
+.market-gesa-brand-chip .market-citrus{
+  position:absolute;
+  left:69px;
+  top:4px;
+  width:38px;
+  height:22px;
+  display:flex;
+  align-items:flex-end;
+  gap:1px;
+}
+.market-gesa-brand-chip .market-citrus i{
+  width:7px;
+  height:19px;
+  background:#f39a2a;
+  border:1px solid rgba(255,255,255,.45);
+  border-radius:8px 8px 2px 2px;
+  transform-origin:bottom;
+}
+.market-gesa-brand-chip .market-citrus i:nth-child(1){transform:rotate(-34deg);height:15px}
+.market-gesa-brand-chip .market-citrus i:nth-child(2){transform:rotate(-12deg)}
+.market-gesa-brand-chip .market-citrus i:nth-child(3){transform:rotate(12deg)}
+.market-gesa-brand-chip .market-citrus i:nth-child(4){transform:rotate(34deg);height:15px}
+
+@media(max-width:1280px){
+  .gesa-login-copy{width:86%}
+  .gesa-login-v2 .login-brand-panel h1{font-size:41px}
+  .gesa-login-features{max-width:620px}
+  .market-gesa-brand-chip{width:150px;height:54px;right:3.3%}
+}
+@media(max-width:1100px){
+  .market-gesa-brand-chip{display:none}
+  .gesa-login-copy{width:92%}
+  .gesa-login-v2 .login-brand-panel h1{font-size:38px}
+  .gesa-login-features{max-width:100%}
+}
