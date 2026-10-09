@@ -160,3 +160,71 @@
   .gesa-login-v2 .login-brand-panel h1{font-size:38px}
   .gesa-login-features{max-width:100%}
 }
+
+
+/* Exact login composition correction */
+.gesa-login-v2{
+  grid-template-columns:minmax(0,1.22fr) minmax(470px,.78fr);
+}
+.gesa-login-hero{
+  padding:clamp(38px,4.2vw,68px)!important;
+  background-image:
+    linear-gradient(90deg,rgba(2,23,50,.93) 0%,rgba(4,39,80,.79) 39%,rgba(4,45,91,.48) 61%,rgba(4,45,91,.10) 86%,rgba(4,45,91,.02) 100%),
+    url('https://www.grifosespinoza.com/wp-content/uploads/2026/06/PORTADA-BIEN-2048x534.webp')!important;
+  background-position:57% center!important;
+}
+.gesa-login-copy{
+  width:min(720px,78%)!important;
+}
+.gesa-login-logo-wrap{
+  margin-bottom:30px!important;
+}
+.gesa-login-logo-wrap .login-logo{
+  width:220px!important;
+}
+.gesa-login-v2 .login-brand-panel h1{
+  font-size:clamp(35px,2.55vw,46px)!important;
+  line-height:1.04!important;
+  max-width:720px!important;
+  letter-spacing:-1.15px!important;
+  margin-bottom:18px!important;
+}
+.gesa-login-description{
+  max-width:560px!important;
+  font-size:15px!important;
+  line-height:1.5!important;
+}
+.gesa-login-features{
+  max-width:610px!important;
+  margin-top:27px!important;
+  gap:14px!important;
+}
+.gesa-login-feature{
+  padding-right:13px!important;
+}
+.gesa-login-card-wrap{
+  padding:42px!important;
+}
+.gesa-login-card{
+  width:min(490px,100%)!important;
+  padding:40px 42px 38px!important;
+}
+.market-gesa-brand-chip,
+.market-gesa-storefront{
+  display:none!important;
+}
+.gesa-login-footer{
+  display:none!important;
+}
+
+@media(max-width:1280px){
+  .gesa-login-v2{grid-template-columns:1.1fr 480px}
+  .gesa-login-copy{width:86%!important}
+  .gesa-login-v2 .login-brand-panel h1{font-size:40px!important}
+  .gesa-login-features{max-width:590px!important}
+}
+@media(max-width:1080px){
+  .gesa-login-v2{grid-template-columns:1fr 460px}
+  .gesa-login-copy{width:91%!important}
+  .gesa-login-v2 .login-brand-panel h1{font-size:37px!important}
+}
